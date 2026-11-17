@@ -652,7 +652,7 @@ function createAppointmentCard(item, compact) {
         actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
         actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
     }
-    if (item.status === "Confirmada") {
+    if (item.status === "Confirmada" && (!item.outcome || item.outcome === "Pendiente")) {
         actions.push('<button class="action-button" data-result="Completada">Completada</button>');
         actions.push('<button class="action-button" data-result="No presentado">No presentado</button>');
     }
@@ -664,7 +664,7 @@ function createAppointmentCard(item, compact) {
         '<div class="appointment-info"><strong>' + escapeText(item.customerName) + '</strong>' +
         '<span>' + escapeText(item.serviceName) + ' · ' + escapeText(item.phone) + '</span>' +
         (item.notes ? '<small>' + escapeText(item.notes) + '</small>' : '') +
-        '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(item.status) + '</span></div>' +
+        '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(item.outcome && item.outcome !== "Pendiente" ? item.outcome : item.status) + '</span></div>' +
         '<div class="appointment-actions">' + actions.join("") + '</div>';
     card.querySelectorAll("[data-whatsapp]").forEach(function (button) {
         button.addEventListener("click", function () { sendWhatsAppAction(item, button.dataset.whatsapp); });
