@@ -37,7 +37,7 @@
       <nav class="side-nav">
         <a class="active" href="#agenda" data-view="agenda">Agenda</a>
         <a href="#pendientes" data-view="pending">Solicitudes pendientes <i id="pending-nav-count">0</i></a>
-        <a href="#servicios-admin" data-view="services">Servicios</a><a href="#clientes" data-view="customers">Clientes</a><a href="#lista-espera" data-view="waitlist">Lista de espera</a>
+        <a href="#servicios-admin" data-view="services">Servicios</a><a href="#clientes" data-view="customers">Clientes</a><a href="#lista-espera" data-view="waitlist">Lista de espera</a><a href="#estadisticas" data-view="analytics">Estadísticas</a>
         <a href="#disponibilidad" data-view="availability">Horarios y cierres</a>
       </nav>
       <div class="sidebar-bottom">
@@ -109,6 +109,11 @@
           <button class="primary-button" id="new-service" type="button">+ Añadir servicio</button>
         </div>
         <div class="service-admin-list" id="service-admin-list"><p class="empty-state">Cargando servicios…</p></div>
+      </section>
+      <section class="panel analytics-panel" id="analytics-view" hidden>
+        <div class="panel-heading"><div><p class="eyebrow">ACTIVIDAD DEL NEGOCIO</p><h2>Estadísticas</h2><p class="services-intro">Resumen de citas, asistencia y servicios más solicitados.</p></div><select id="analytics-period" aria-label="Periodo de estadísticas"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="365">Último año</option></select></div>
+        <div class="stats-grid analytics-stats"><article class="stat-card"><span>Total de citas</span><strong id="analytics-total">—</strong></article><article class="stat-card"><span>Completadas</span><strong id="analytics-completed">—</strong></article><article class="stat-card"><span>No presentados</span><strong id="analytics-noshow">—</strong></article><article class="stat-card"><span>Canceladas</span><strong id="analytics-cancelled">—</strong></article></div>
+        <div class="analytics-columns"><div><h3>Servicios más solicitados</h3><div id="analytics-services" class="analytics-list"></div></div><div><h3>Estado de las citas</h3><div id="analytics-status" class="analytics-list"></div></div></div>
       </section>
       <section class="panel customers-panel" id="customers-view" hidden>
         <div class="panel-heading"><div><p class="eyebrow">RELACIÓN CON CLIENTES</p><h2>Clientes</h2><p class="services-intro">Consulta el historial y conserva los datos y preferencias de cada cliente.</p></div></div>
