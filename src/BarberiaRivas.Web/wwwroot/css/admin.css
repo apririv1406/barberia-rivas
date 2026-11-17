@@ -631,3 +631,153 @@
 .analytics-list{display:grid;gap:8px}
 .analytics-row{display:flex;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);background:#fafaf8;font-size:11px}
 @media(max-width:700px){.customer-card-actions{display:grid;grid-template-columns:1fr 1fr}.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-columns{grid-template-columns:1fr}.customer-history article{flex-direction:column}.customer-history article span{text-align:left}}
+
+
+/* Identidad visual Barbería Rivas — administración */
+:root {
+  --ink: #332722;
+  --muted: #82766f;
+  --line: #e3e2dc;
+  --paper: #eef0ed;
+  --white: #ffffff;
+  --gold: #8f5c3d;
+  --green: #47745c;
+  --red: #a34e49;
+  --rivas-brown: #6d4b3f;
+  --rivas-brown-deep: #401210;
+  --rivas-soft: #b4bdbc;
+}
+body.admin-body { background: var(--paper); color: var(--ink); }
+.login-screen { background: radial-gradient(circle at 15% 10%, #fff 0, #eef0ed 52%, #e5e8e4 100%); }
+.login-card {
+  border: 1px solid #e5e3dd;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px #40121012;
+}
+.login-brand img { border-radius: 50%; object-fit: cover; }
+.login-card h1, .topbar h1, .panel-heading h2, .stat-card strong,
+.dialog-heading h2, .availability-card h3, .customer-history h3,
+.analytics-columns h3 { color: var(--rivas-brown-deep); }
+.eyebrow { color: var(--rivas-brown); letter-spacing: 1.7px; }
+.primary-button {
+  background: var(--rivas-brown);
+  border-radius: 7px;
+  color: #fff;
+  transition: background .18s ease, transform .18s ease;
+}
+.primary-button:hover { background: var(--rivas-brown-deep); }
+.primary-button:active { transform: translateY(1px); }
+.secondary-button, .action-button, .icon-button, .today-button {
+  border-radius: 7px;
+}
+.secondary-button:hover, .action-button:hover, .icon-button:hover,
+.today-button:hover { border-color: var(--rivas-brown); color: var(--rivas-brown-deep); }
+.admin-app { background: var(--paper); }
+.sidebar {
+  background: var(--rivas-brown-deep);
+  box-shadow: 8px 0 28px #4012100b;
+}
+.sidebar-brand { letter-spacing: 1.1px; }
+.sidebar-brand img {
+  background: #fff;
+  padding: 2px;
+  object-fit: cover;
+  border: 2px solid #ffffff40;
+}
+.sidebar-brand small { color: #d2bdb4; }
+.side-nav { gap: 5px; }
+.side-nav a {
+  border-radius: 8px;
+  color: #e2d6d1;
+  transition: background .18s ease, color .18s ease;
+}
+.side-nav a.active, .side-nav a:hover {
+  background: #ffffff18;
+  color: #fff;
+}
+.side-nav a.active { box-shadow: inset 3px 0 #b4bdbc; }
+.side-nav i { background: #8f5c3d; }
+.sidebar-bottom a, .sidebar-bottom button { color: #d2bdb4; }
+.sidebar-bottom a:hover, .sidebar-bottom button:hover { color: #fff; }
+.main-content { padding-top: clamp(26px, 3.4vw, 44px); }
+.topbar { margin-bottom: 30px; }
+.topbar .eyebrow { color: #8f5c3d; }
+.stat-card, .panel, .availability-card {
+  border: 1px solid #e4e4de;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px #33272208;
+}
+.stat-card { padding: 22px 23px; }
+.stat-card strong { font-family: "DM Sans", Arial, sans-serif; font-weight: 600; }
+.panel { padding: 24px; }
+.calendar-day {
+  border-radius: 7px;
+  background: #f7f8f5;
+}
+.calendar-day:hover { border-color: #8f5c3d; }
+.calendar-day.selected {
+  background: #f1e9e4;
+  border-color: var(--rivas-brown);
+}
+.calendar-day.is-today .day-number {
+  background: var(--rivas-brown-deep);
+}
+.week-day {
+  border-color: #e5e3dd;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fafbf9;
+}
+.week-day.is-today { border-color: #8f5c3d; }
+.week-day-heading { background: #f7f8f5; }
+.week-day-heading strong { color: var(--rivas-brown-deep); }
+.appointment-card {
+  border-radius: 8px;
+  border-color: #e8e7e1;
+  border-left-color: var(--green);
+}
+.appointment-card.is-pending { border-left-color: var(--gold); }
+.status-pending { background: #f4ebe2; color: #805333; }
+.status-confirmed { background: #e9f1eb; color: #47745c; }
+.action-button.accept {
+  background: var(--rivas-brown);
+  border-color: var(--rivas-brown);
+}
+.action-button.accept:hover { background: var(--rivas-brown-deep); }
+.day-count { background: #f1e9e4; color: var(--rivas-brown-deep); border-radius: 6px; }
+.calendar-view-toggle {
+  background: #f4f5f2;
+  border-color: #e2e3dd;
+  border-radius: 8px;
+}
+.calendar-view-toggle button { border-radius: 6px; }
+.calendar-view-toggle button.active {
+  background: var(--rivas-brown);
+}
+.icon-button, .today-button { background: #fff; }
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid #8f5c3d35;
+  border-color: var(--rivas-brown) !important;
+}
+.dialog-form, .appointment-dialog, .service-dialog { border-radius: 14px; }
+.appointment-dialog, .service-dialog {
+  box-shadow: 0 28px 90px #40121024;
+}
+.appointment-dialog::backdrop, .service-dialog::backdrop { background: #24181580; }
+.service-admin-card, .customer-card, .waitlist-card,
+.availability-block-item, .analytics-row {
+  border-radius: 8px;
+}
+.service-admin-card, .customer-card, .waitlist-card { border-color: #e5e3dd; }
+.service-state.active { background: #e9f1eb; color: #47745c; }
+.admin-toast { background: var(--rivas-brown-deep); border-radius: 9px; }
+.mobile-menu-toggle span { background: var(--rivas-brown-deep); }
+@media (max-width: 700px) {
+  .sidebar { box-shadow: 16px 0 45px #24181526; }
+  .main-content { padding: 22px 13px; }
+  .panel { padding: 16px; border-radius: 10px; }
+  .topbar { margin-bottom: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary-button, .side-nav a { transition: none; }
+}
