@@ -30,6 +30,7 @@ let selectedDate = dateKey(new Date());
 let monthAppointments = [];
 let pendingAppointments = [];
 let services = [];
+let businessHours = [];
 
 function dateKey(date) {
     const year = date.getFullYear();
@@ -298,7 +299,9 @@ function renderBusinessHours(hours) {
 async function loadAdminAvailability() {
     try {
         const result = await api("/api/admin/availability");
-        renderBusinessHours(result.hours || []);
+        businessHours = result.hours || [];
+        renderBusinessHours(businessHours);
+        configureTimeOptions();
         renderAvailabilityBlocks(result.blocks || []);
     } catch (error) {
         businessHoursEditor.innerHTML = '<p class="empty-state">' + escapeText(error.message) + '</p>';
@@ -442,7 +445,7 @@ serviceForm.addEventListener("submit", async function (event) {
 async function refreshAll() {
     try {
         await loadServices();
-        await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
+        await Promise.all([loadCalendar(), loadPending(), loadSummary(), loadAdminAvailability()]);
     } catch (error) {
         if (error.message) console.error(error);
     }
@@ -717,10 +720,15 @@ async function updateStatus(id, status, skipConfirm) {
 }
 
 function configureTimeOptions() {
+    if (!adminTime) return;
     adminTime.innerHTML = "";
-    [[10, 0, 14, 0], [16, 0, 20, 0]].forEach(function (period) {
-        let minutes = period[0] * 60;
-        const end = period[2] * 60;
+    const date = adminDate && adminDate.value ? dateFromKey(adminDate.value) : new Date();
+    const weekday = date.getDay();
+    const periods = businessHours.filter(function (item) { return Number(item.weekday) === weekday; })
+        .sort(function (a, b) { return Number(a.period) - Number(b.period); });
+    periods.forEach(function (period) {
+        let minutes = Number(period.startTime.slice(0, 2)) * 60 + Number(period.startTime.slice(3, 5));
+        const end = Number(period.endTime.slice(0, 2)) * 60 + Number(period.endTime.slice(3, 5));
         while (minutes < end) {
             const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
             const mins = String(minutes % 60).padStart(2, "0");
@@ -732,6 +740,12 @@ function configureTimeOptions() {
             minutes += 30;
         }
     });
+    if (!periods.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Día cerrado";
+        adminTime.append(option);
+    }
 }
 
 function openDialog() {
@@ -739,6 +753,7 @@ function openDialog() {
     appointmentFeedback.textContent = "";
     adminDate.min = dateKey(new Date());
     adminDate.value = selectedDate;
+    configureTimeOptions();
     dialog.showModal();
 }
 
@@ -775,6 +790,7 @@ appointmentForm.addEventListener("submit", async function (event) {
 });
 
 configureTimeOptions();
+adminDate.addEventListener("change", configureTimeOptions);
 updateBlockFormFields();
 document.querySelector("#block-start-date").min = dateKey(new Date());
 document.querySelector("#block-end-date").min = dateKey(new Date());
