@@ -340,6 +340,16 @@ export default {
             typeof row.endTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(row.endTime) ||
             row.startTime >= row.endTime))
             return problem("Horario no válido", 400, "Revisa los días y las horas. La hora de fin debe ser posterior a la de inicio.");
+          for (let index = 0; index < rows.length; index++) {
+            for (let other = index + 1; other < rows.length; other++) {
+              const first = rows[index];
+              const second = rows[other];
+              if (Number(first.weekday) === Number(second.weekday) &&
+                  String(first.startTime) < String(second.endTime) &&
+                  String(second.startTime) < String(first.endTime))
+                return problem("Turnos solapados", 400, "Los dos turnos de un mismo día no pueden coincidir.");
+            }
+          }
           const batch = [
             env.DB.prepare("DELETE FROM business_hours"),
             ...rows.map(row => env.DB.prepare("INSERT INTO business_hours (weekday, period, start_time, end_time) VALUES (?, ?, ?, ?)")
