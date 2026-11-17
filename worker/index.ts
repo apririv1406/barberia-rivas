@@ -197,6 +197,7 @@ export default {
           headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }
         });
       }
+      if ((path === "/" || path === "/index.html") && method === "GET") return asset(request, env, "/index.html");
       if ((path === "/admin" || path === "/admin/") && method === "GET") {
         const response = await asset(request, env, "/admin.html");
         const headers = new Headers(response.headers);
