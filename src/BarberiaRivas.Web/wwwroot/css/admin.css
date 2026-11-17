@@ -866,3 +866,30 @@ input:focus, select:focus, textarea:focus {
   .appointment-detail-grid > div { padding: 10px; }
   .appointment-detail-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }
+
+/* Diferenciar visualmente las citas ya realizadas de las que siguen confirmadas. */
+.appointment-card.is-completed {
+  background: repeating-linear-gradient(
+    135deg,
+    #f4f3ef 0,
+    #f4f3ef 7px,
+    #e9e7e1 7px,
+    #e9e7e1 9px
+  );
+  border-color: #d8d4cb;
+  border-left: 3px solid #8b8175;
+}
+.appointment-card.is-completed .status-completed {
+  background: #e2ded6;
+  color: #51483f;
+  font-weight: 700;
+}
+.appointment-card.is-no-show {
+  border-left-color: #a34e49;
+}
+.appointment-card.is-no-show .status-no-show {
+  background: #f5e8e6;
+  color: #984b45;
+  font-weight: 700;
+}
+.appointment-card.is-completed .appointment-open-hint { color: #756b61; }
