@@ -257,7 +257,7 @@ export default {
           ).bind(id, name, description, price, duration, displayOrder).run();
           return json({ id, message: "Servicio creado correctamente." }, 201);
         }
-        const serviceMatch = path.match(/^\\/api\\/admin\\/services\\/([0-9a-f-]{36})$/i);
+        const serviceMatch = path.match(/^\/api\/admin\/services\/([0-9a-f-]{36})$/i);
         if (serviceMatch && method === "PATCH") {
           const body = await request.json() as Record<string, unknown>;
           const current = await env.DB.prepare(
