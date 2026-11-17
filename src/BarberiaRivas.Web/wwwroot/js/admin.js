@@ -460,12 +460,21 @@ serviceForm.addEventListener("submit", async function (event) {
 });
 
 async function refreshAll() {
-    try {
-        await loadServices();
-        await Promise.all([loadCalendar(), loadPending(), loadSummary(), loadAdminAvailability()]);
-    } catch (error) {
-        if (error.message) console.error(error);
-    }
+    // Cada bloque se carga de forma independiente: un fallo en servicios,
+    // estadísticas u horarios no debe impedir que aparezca la agenda.
+    const tasks = [
+        loadCalendar(),
+        loadServices(),
+        loadPending(),
+        loadSummary(),
+        loadAdminAvailability()
+    ];
+    const results = await Promise.allSettled(tasks);
+    results.forEach(function (result) {
+        if (result.status === "rejected" && result.reason) {
+            console.error("Error al cargar el panel:", result.reason);
+        }
+    });
 }
 
 async function loadServices() {
@@ -514,21 +523,36 @@ async function loadWeek() {
     fridayAfter.setDate(fridayAfter.getDate() + 5);
     const fromKey = dateKey(monday);
     const toKey = dateKey(fridayAfter);
-    const url = "/api/admin/appointments?from=" + encodeURIComponent(localDateTime(fromKey, "00:00")) +
-        "&to=" + encodeURIComponent(localDateTime(toKey, "00:00"));
-    monthAppointments = await api(url);
-    const friday = new Date(monday);
-    friday.setDate(friday.getDate() + 4);
-    const formatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
-    monthLabel.textContent = formatter.format(monday) + " – " + formatter.format(friday) +
-        " " + friday.getFullYear();
-    monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+    const container = document.querySelector("#week-calendar");
+
+    // Mostrar la estructura semanal antes de consultar las citas.
+    // Así la agenda no desaparece si la API tarda o devuelve un error.
     document.querySelector(".workspace").classList.add("week-mode");
     adminApp.classList.add("week-view-active");
     document.querySelector("#month-calendar").hidden = true;
     document.querySelector("#month-day-panel").hidden = true;
-    document.querySelector("#week-calendar").hidden = false;
-    renderWeek(monday);
+    container.hidden = false;
+    container.innerHTML = '<p class="empty-state">Cargando agenda…</p>';
+
+    const url = "/api/admin/appointments?from=" + encodeURIComponent(localDateTime(fromKey, "00:00")) +
+        "&to=" + encodeURIComponent(localDateTime(toKey, "00:00"));
+    try {
+        monthAppointments = await api(url);
+        if (!Array.isArray(monthAppointments)) {
+            throw new Error("El servidor no ha devuelto una lista válida de citas.");
+        }
+        const friday = new Date(monday);
+        friday.setDate(friday.getDate() + 4);
+        const formatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+        monthLabel.textContent = formatter.format(monday) + " – " + formatter.format(friday) +
+            " " + friday.getFullYear();
+        monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+        renderWeek(monday);
+    } catch (error) {
+        container.innerHTML = '<p class="empty-state">No se ha podido cargar la agenda. ' +
+            escapeText(error.message || "Comprueba la conexión y vuelve a intentarlo.") + '</p>';
+        throw error;
+    }
 }
 
 function renderWeek(monday) {
