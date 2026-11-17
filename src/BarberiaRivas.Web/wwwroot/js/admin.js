@@ -225,6 +225,8 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
     });
 });
 document.querySelector("#close-dialog").addEventListener("click", closeDialog);
+document.querySelector("#close-appointment-detail").addEventListener("click", function () { document.querySelector("#appointment-detail-dialog").close(); });
+document.querySelector("#appointment-detail-dialog").addEventListener("click", function (event) { if (event.target === this) this.close(); });
 document.querySelector("#cancel-dialog").addEventListener("click", closeDialog);
 dialog.addEventListener("click", function (event) {
     if (event.target === dialog) closeDialog();
@@ -663,48 +665,67 @@ function renderDay() {
 }
 
 function createAppointmentCard(item, compact) {
-    const card = document.createElement("article");
-    card.className = "appointment-card " + (item.status === "Pendiente" ? "is-pending" : "is-confirmed");
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "appointment-card appointment-card-clickable " + (item.status === "Pendiente" ? "is-pending" : "is-confirmed");
+    card.setAttribute("aria-label", "Abrir cita de " + item.customerName);
     const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.requestedAt));
-    const actions = [];
-    if (item.status === "Pendiente") {
-        actions.push('<button class="action-button accept" data-whatsapp="Confirmada" title="Abrir WhatsApp para confirmar" aria-label="Confirmar cita por WhatsApp">Confirmar</button>');
-        actions.push('<button class="action-button reject" data-whatsapp="Rechazada" title="Abrir WhatsApp para rechazar" aria-label="Rechazar solicitud por WhatsApp">Rechazar</button>');
-        actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
-    } else if (item.status === "Confirmada") {
-        actions.push('<button class="action-button" data-whatsapp="Recordatorio" title="Preparar recordatorio por WhatsApp">Recordatorio</button>');
-        actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
-        actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
-    }
-    if (item.status === "Confirmada" && (!item.outcome || item.outcome === "Pendiente")) {
-        actions.push('<button class="action-button" data-result="Completada">Completada</button>');
-        actions.push('<button class="action-button" data-result="No presentado">No presentado</button>');
-    }
-    if (item.status === "Pendiente" || item.status === "Confirmada") {
-        actions.push('<button class="action-button" data-edit="true">Editar</button>');
-    }
+    const outcome = item.outcome && item.outcome !== "Pendiente" ? item.outcome : item.status;
     card.innerHTML =
         '<div class="appointment-time">' + time + '</div>' +
         '<div class="appointment-info"><strong>' + escapeText(item.customerName) + '</strong>' +
-        '<span>' + escapeText(item.serviceName) + ' · ' + escapeText(item.phone) + '</span>' +
-        (item.notes ? '<small>' + escapeText(item.notes) + '</small>' : '') +
-        '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(item.outcome && item.outcome !== "Pendiente" ? item.outcome : item.status) + '</span></div>' +
-        '<div class="appointment-actions">' + actions.join("") + '</div>';
-    card.querySelectorAll("[data-whatsapp]").forEach(function (button) {
-        button.addEventListener("click", function () { sendWhatsAppAction(item, button.dataset.whatsapp); });
-    });
-    card.querySelectorAll("[data-action]").forEach(function (button) {
-        button.addEventListener("click", function () {
-            updateStatus(item.id, button.dataset.action);
-        });
-    });
-    card.querySelectorAll("[data-result]").forEach(function (button) {
-        button.addEventListener("click", function () { updateAppointmentResult(item.id, button.dataset.result); });
-    });
-    card.querySelectorAll("[data-edit]").forEach(function (button) {
-        button.addEventListener("click", function () { openEditDialog(item); });
-    });
+        '<span>' + escapeText(item.serviceName) + '</span>' +
+        '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(outcome) + '</span></div>' +
+        '<span class="appointment-open-hint" aria-hidden="true">›</span>';
+    card.addEventListener("click", function () { openAppointmentDetails(item); });
     return card;
+}
+
+function openAppointmentDetails(item) {
+    const detailDialog = document.querySelector("#appointment-detail-dialog");
+    const date = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(item.requestedAt));
+    const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.requestedAt));
+    const money = item.price == null ? "No indicado" : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(item.price));
+    const status = item.outcome && item.outcome !== "Pendiente" ? item.outcome : item.status;
+    document.querySelector("#appointment-detail-title").textContent = item.customerName || "Detalle de la cita";
+    document.querySelector("#appointment-detail-content").innerHTML =
+        '<div class="appointment-detail-grid">' +
+        '<div><small>Cliente</small><strong>' + escapeText(item.customerName) + '</strong></div>' +
+        '<div><small>Teléfono</small><strong>' + escapeText(item.phone || "—") + '</strong></div>' +
+        '<div><small>Servicio</small><strong>' + escapeText(item.serviceName || "—") + '</strong></div>' +
+        '<div><small>Fecha</small><strong>' + escapeText(date) + '</strong></div>' +
+        '<div><small>Hora</small><strong>' + escapeText(time) + '</strong></div>' +
+        '<div><small>Duración</small><strong>' + (item.durationMinutes ? Number(item.durationMinutes) + " min" : "No indicada") + '</strong></div>' +
+        '<div><small>Precio</small><strong>' + escapeText(money) + '</strong></div>' +
+        '<div><small>Estado</small><strong>' + escapeText(status) + '</strong></div>' +
+        '</div>' +
+        (item.notes ? '<div class="appointment-detail-note"><small>Observaciones del cliente</small><p>' + escapeText(item.notes) + '</p></div>' : '') +
+        (item.internalNotes ? '<div class="appointment-detail-note internal"><small>Nota interna</small><p>' + escapeText(item.internalNotes) + '</p></div>' : '');
+    const actions = document.querySelector("#appointment-detail-actions");
+    actions.innerHTML = "";
+    function addAction(label, className, handler) {
+        const button = document.createElement("button");
+        button.type = "button"; button.className = className || "secondary-button"; button.textContent = label;
+        button.addEventListener("click", async function () { await handler(); });
+        actions.append(button);
+    }
+    if (item.status === "Pendiente") {
+        addAction("Confirmar por WhatsApp", "primary-button", function () { sendWhatsAppAction(item, "Confirmada"); });
+        addAction("Rechazar por WhatsApp", "secondary-button", function () { sendWhatsAppAction(item, "Rechazada"); });
+        addAction("Proponer cambio", "secondary-button", function () { sendWhatsAppAction(item, "Cambiar"); });
+    } else if (item.status === "Confirmada") {
+        addAction("Enviar recordatorio", "secondary-button", function () { sendWhatsAppAction(item, "Recordatorio"); });
+        addAction("Proponer cambio", "secondary-button", function () { sendWhatsAppAction(item, "Cambiar"); });
+        addAction("Cancelar por WhatsApp", "secondary-button danger", function () { sendWhatsAppAction(item, "Cancelada"); });
+    }
+    if (item.status === "Confirmada" && (!item.outcome || item.outcome === "Pendiente")) {
+        addAction("Marcar completada", "secondary-button", async function () { await updateAppointmentResult(item.id, "Completada"); detailDialog.close(); });
+        addAction("No se ha presentado", "secondary-button", async function () { await updateAppointmentResult(item.id, "No presentado"); detailDialog.close(); });
+    }
+    if (item.status === "Pendiente" || item.status === "Confirmada") {
+        addAction("Editar cita", "secondary-button", function () { detailDialog.close(); openEditDialog(item); });
+    }
+    detailDialog.showModal();
 }
 
 function sendWhatsAppAction(item, action) {
