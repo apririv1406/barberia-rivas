@@ -168,3 +168,155 @@
   .mobile-menu-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}
   .mobile-menu-toggle[aria-expanded="true"] span:last-child{transform:translateY(-7px) rotate(-45deg)}
 }
+
+
+/* Agenda semanal: jerarquía visual más limpia y acciones breves. */
+.workspace.week-mode .calendar-panel {
+  background: #fff;
+  border-color: #eeeee9;
+}
+.workspace.week-mode .week-calendar {
+  gap: 14px;
+}
+.workspace.week-mode .week-day {
+  background: #f8f8f6;
+  border: 1px solid #eeeee9;
+  border-radius: 5px;
+}
+.workspace.week-mode .week-day.is-today {
+  border-color: #b49a6c;
+  box-shadow: inset 0 2px 0 #a68b5b;
+}
+.workspace.week-mode .week-day-heading {
+  padding: 15px 13px;
+  background: transparent;
+  border-bottom: 1px solid #e9e9e4;
+}
+.workspace.week-mode .week-day-heading strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: #282824;
+}
+.workspace.week-mode .week-day-heading span {
+  font-size: 11px;
+  color: #85857e;
+}
+.workspace.week-mode .week-day-heading small {
+  padding: 4px 7px;
+  border-radius: 20px;
+  background: #eeeee9;
+  font-size: 9px;
+}
+.workspace.week-mode .week-day-appointments {
+  gap: 9px;
+  padding: 10px;
+}
+.workspace.week-mode .week-day .appointment-card {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e9e9e4;
+  border-left: 3px solid var(--green);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 7px #17171506;
+}
+.workspace.week-mode .week-day .appointment-card.is-pending {
+  border-left-color: var(--gold);
+}
+.workspace.week-mode .week-day .appointment-time {
+  padding: 0;
+  color: #252520;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.workspace.week-mode .week-day .appointment-info {
+  gap: 4px;
+}
+.workspace.week-mode .week-day .appointment-info strong {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.workspace.week-mode .week-day .appointment-info>span:not(.status-pill),
+.workspace.week-mode .week-day .appointment-info small {
+  font-size: 9px;
+  line-height: 1.45;
+}
+.workspace.week-mode .week-day .status-pill {
+  margin-top: 2px;
+}
+.workspace.week-mode .week-day .appointment-actions {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-top: 3px;
+}
+.workspace.week-mode .week-day .action-button {
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+}
+.workspace.week-mode .week-day .action-button.accept {
+  background: #252521;
+  border-color: #252521;
+}
+.workspace.week-mode .week-day .action-button:not(.accept):not(.reject) {
+  color: #55554f;
+  background: #fff;
+}
+.workspace.week-mode .week-day .action-button.reject {
+  color: #98534c;
+  background: #fff;
+}
+.workspace.week-mode .week-empty {
+  margin: 8px 3px;
+  padding: 24px 8px;
+  border: 1px dashed #e4e4de;
+  border-radius: 4px;
+  color: #a2a29b;
+  font-size: 10px;
+}
+@media(max-width:700px) {
+  .workspace.week-mode .week-calendar {
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+  .workspace.week-mode .week-day {
+    border-radius: 4px;
+  }
+  .workspace.week-mode .week-day-heading {
+    padding: 12px;
+  }
+  .workspace.week-mode .week-day-appointments {
+    padding: 9px;
+    gap: 8px;
+  }
+  .workspace.week-mode .week-day .appointment-card {
+    grid-template-columns: 48px minmax(0,1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+  .workspace.week-mode .week-day .appointment-time {
+    grid-row: 1;
+    font-size: 12px;
+  }
+  .workspace.week-mode .week-day .appointment-info {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .workspace.week-mode .week-day .appointment-actions {
+    grid-column: 1/-1;
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 7px;
+  }
+  .workspace.week-mode .week-day .action-button {
+    min-height: 44px;
+    padding: 10px 8px;
+    font-size: 10px;
+  }
+}
