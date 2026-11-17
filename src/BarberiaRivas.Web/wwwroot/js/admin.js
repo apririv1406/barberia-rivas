@@ -170,6 +170,7 @@ function closeMobileMenu() {
     document.querySelector("#admin-sidebar").classList.remove("is-open");
     adminApp.classList.remove("menu-open");
     document.querySelector("#mobile-menu-toggle").setAttribute("aria-expanded", "false");
+    document.querySelector("#mobile-menu-toggle").setAttribute("aria-label", "Abrir menú");
 }
 document.querySelector("#mobile-menu-toggle").addEventListener("click", function () {
     const sidebar = document.querySelector("#admin-sidebar");
@@ -177,6 +178,7 @@ document.querySelector("#mobile-menu-toggle").addEventListener("click", function
     sidebar.classList.toggle("is-open", opening);
     adminApp.classList.toggle("menu-open", opening);
     this.setAttribute("aria-expanded", String(opening));
+    this.setAttribute("aria-label", opening ? "Cerrar menú" : "Abrir menú");
 });
 document.querySelector("#sidebar-close").addEventListener("click", closeMobileMenu);
 adminApp.addEventListener("click", function (event) {
