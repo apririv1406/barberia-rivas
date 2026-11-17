@@ -648,6 +648,7 @@ function createAppointmentCard(item, compact) {
         actions.push('<button class="action-button reject" data-whatsapp="Rechazada" title="Abrir WhatsApp para rechazar" aria-label="Rechazar solicitud por WhatsApp">Rechazar</button>');
         actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
     } else if (item.status === "Confirmada") {
+        actions.push('<button class="action-button" data-whatsapp="Recordatorio" title="Preparar recordatorio por WhatsApp">Recordatorio</button>');
         actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
         actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
     }
@@ -696,10 +697,16 @@ function sendWhatsAppAction(item, action) {
         Confirmada: "Hola " + item.customerName + ", tu cita en Barbería Rivas para el " + date + " a las " + time + " ha quedado confirmada. ¡Te esperamos!",
         Rechazada: "Hola " + item.customerName + ", sentimos comunicarte que no podemos atender tu solicitud de cita del " + date + " a las " + time + ". Disculpa las molestias.",
         Cambiar: "Hola " + item.customerName + ", necesitamos cambiar tu cita en Barbería Rivas prevista para el " + date + " a las " + time + ". ¿Qué otra fecha u hora te vendría bien?",
-        Cancelada: "Hola " + item.customerName + ", te confirmamos que tu cita en Barbería Rivas del " + date + " a las " + time + " ha sido cancelada."
+        Cancelada: "Hola " + item.customerName + ", te confirmamos que tu cita en Barbería Rivas del " + date + " a las " + time + " ha sido cancelada.",
+        Recordatorio: "Hola " + item.customerName + ", te recordamos tu cita en Barbería Rivas para el " + date + " a las " + time + ". ¡Te esperamos!"
     };
     window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(messages[action]), "_blank", "noopener");
-    if (action !== "Cambiar") updateStatus(item.id, action, true);
+    if (action === "Recordatorio") {
+        if (window.confirm("¿Has enviado el recordatorio por WhatsApp?")) {
+            api("/api/admin/appointments/" + item.id + "/reminder", { method: "POST", body: JSON.stringify({ type: "manual" }) })
+                .then(function () { showToast("Recordatorio registrado."); }).catch(function (error) { showToast(error.message); });
+        }
+    } else if (action !== "Cambiar") updateStatus(item.id, action, true);
 }
 
 async function loadPending() {
