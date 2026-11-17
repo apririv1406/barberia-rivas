@@ -22,6 +22,7 @@ const servicesView = document.querySelector("#services-view");
 const availabilityView = document.querySelector("#availability-view");
 const customersView = document.querySelector("#customers-view");
 const waitlistView = document.querySelector("#waitlist-view");
+const analyticsView = document.querySelector("#analytics-view");
 const businessHoursEditor = document.querySelector("#business-hours-editor");
 const availabilityBlockList = document.querySelector("#availability-block-list");
 const blockForm = document.querySelector("#block-form");
@@ -198,8 +199,9 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
         availabilityView.hidden = view !== "availability";
         customersView.hidden = view !== "customers";
         waitlistView.hidden = view !== "waitlist";
+        analyticsView.hidden = view !== "analytics";
         document.querySelector("#new-appointment").hidden = !["agenda", "pending"].includes(view);
-        document.querySelector(".topbar h1").textContent = ({ services: "Servicios", availability: "Horarios y cierres", customers: "Clientes", waitlist: "Lista de espera" })[view] || "Agenda";
+        document.querySelector(".topbar h1").textContent = ({ services: "Servicios", availability: "Horarios y cierres", customers: "Clientes", waitlist: "Lista de espera", analytics: "Estadísticas" })[view] || "Agenda";
         if (view === "services") {
             loadAdminServices();
             servicesView.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -212,6 +214,9 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
         } else if (view === "waitlist") {
             loadWaitlist();
             waitlistView.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (view === "analytics") {
+            loadAnalytics();
+            analyticsView.scrollIntoView({ behavior: "smooth", block: "start" });
         } else if (view === "pending") {
             document.querySelector("#pendientes").scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
@@ -908,6 +913,25 @@ document.querySelector("#waitlist-form").addEventListener("submit", async functi
     try { await api("/api/admin/waitlist", { method: "POST", body: JSON.stringify({ name: data.get("name"), phone: data.get("phone"), serviceId: data.get("serviceId") || null, preferredDate: data.get("preferredDate") || null, preferredTime: data.get("preferredTime"), notes: data.get("notes") }) }); form.reset(); await loadWaitlist(); showToast("Añadido a la lista de espera."); }
     catch (error) { document.querySelector("#waitlist-feedback").textContent = error.message; }
 });
+
+async function loadAnalytics() {
+    try {
+        const days = document.querySelector("#analytics-period").value;
+        const data = await api("/api/admin/analytics?days=" + days);
+        document.querySelector("#analytics-total").textContent = data.total;
+        document.querySelector("#analytics-completed").textContent = data.completed;
+        document.querySelector("#analytics-noshow").textContent = data.noShow;
+        document.querySelector("#analytics-cancelled").textContent = data.cancelled;
+        document.querySelector("#analytics-services").innerHTML = data.services.length ? data.services.map(function (item) {
+            return '<div class="analytics-row"><span>' + escapeText(item.name) + '</span><strong>' + item.count + '</strong></div>';
+        }).join("") : '<p class="empty-state">Todavía no hay datos.</p>';
+        document.querySelector("#analytics-status").innerHTML = data.statuses.length ? data.statuses.map(function (item) {
+            return '<div class="analytics-row"><span>' + escapeText(item.status) + '</span><strong>' + item.count + '</strong></div>';
+        }).join("") : '<p class="empty-state">Todavía no hay datos.</p>';
+    } catch (error) { showToast(error.message); }
+}
+document.querySelector("#analytics-period").addEventListener("change", loadAnalytics);
+
 function populateWaitlistServices() {
     const select = document.querySelector("#waitlist-service"); if (!select) return;
     select.innerHTML = '<option value="">Cualquier servicio</option>';
