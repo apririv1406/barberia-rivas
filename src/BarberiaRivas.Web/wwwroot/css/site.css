@@ -243,3 +243,12 @@ h2 { font-size: clamp(40px, 5vw, 62px); line-height: 1.06; margin: 18px 0 24px; 
   .service-card, .service-card + .service-card { border: 1px solid var(--line); padding: 24px 22px; }
   .service-description { min-height: 0; }
 }
+
+/* Navegación móvil con botón hamburguesa */
+@media(max-width:640px){
+  .menu-toggle{width:44px;height:44px;padding:11px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px}
+  .menu-toggle span{display:block;width:22px;height:2px;background:#111;border-radius:2px;transition:transform .2s,opacity .2s}
+  .menu-toggle[aria-expanded="true"] span:first-child{transform:translateY(7px) rotate(45deg)}
+  .menu-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}
+  .menu-toggle[aria-expanded="true"] span:last-child{transform:translateY(-7px) rotate(-45deg)}
+}
