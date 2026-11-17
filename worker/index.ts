@@ -235,7 +235,7 @@ async function availability(env: Env, date: string, serviceId: string): Promise<
 async function createAppointment(env: Env, body: Record<string, unknown>, manual: boolean): Promise<Response> {
   const name = clean(body.name, 100);
   const phone = clean(body.phone, 30);
-  const email = null;
+  const email = body.email == null || body.email === "" ? null : clean(body.email, 150);
   const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 500);
   const serviceId = typeof body.serviceId === "string" ? body.serviceId : "";
   const requestedAt = body.requestedAt;
