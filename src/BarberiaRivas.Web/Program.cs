@@ -22,7 +22,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.Cookie.Name = "BarberiaRivas.Admin";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SecurePolicy = appEnvironmentIsDevelopment(builder.Environment);
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromHours(10);
         options.SlidingExpiration = true;
@@ -132,7 +132,7 @@ app.MapPost("/api/appointments", async (CreateAppointmentRequest request, IServi
 
     var requestedAt = request.RequestedAt;
     var duration = service.DurationMinutes is > 0 ? service.DurationMinutes.Value : 30;
-    if (requestedAt <= DateTime.Now || !IsWithinBusinessHours(requestedAt, duration))
+    if (requestedAt <= GetBusinessNow() || !IsWithinBusinessHours(requestedAt, duration))
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
             ["requestedAt"] = ["Selecciona una fecha futura dentro del horario: lunes a viernes, de 10:00 a 14:00 y de 16:00 a 20:00."]
@@ -173,7 +173,7 @@ app.MapPost("/api/admin/login", async (AdminLoginRequest request, HttpContext co
     var expected = Encoding.UTF8.GetBytes(configuredPassword);
     if (supplied.Length != expected.Length ||
         !CryptographicOperations.FixedTimeEquals(supplied, expected))
-        return Results.Unauthorized();
+        return Results.BadRequest(new { message = "La contraseña no es correcta." });
 
     var claims = new[]
     {
@@ -206,7 +206,7 @@ admin.MapPost("/logout", async (HttpContext context) =>
 
 admin.MapGet("/summary", async (AppDbContext db, DateOnly? day) =>
 {
-    var today = day ?? DateOnly.FromDateTime(DateTime.Now);
+    var today = day ?? DateOnly.FromDateTime(GetBusinessNow());
     var start = today.ToDateTime(TimeOnly.MinValue);
     var end = start.AddDays(1);
     var appointments = await db.Appointments.AsNoTracking()
@@ -288,7 +288,7 @@ admin.MapPost("/appointments", async (AdminCreateAppointmentRequest request, App
     if (service is null) return Results.BadRequest(new { message = "Selecciona un servicio activo." });
 
     var duration = service.DurationMinutes is > 0 ? service.DurationMinutes.Value : 30;
-    if (!IsWithinBusinessHours(request.RequestedAt, duration) || request.RequestedAt <= DateTime.Now)
+    if (!IsWithinBusinessHours(request.RequestedAt, duration) || request.RequestedAt <= GetBusinessNow())
         return Results.BadRequest(new { message = "La cita debe estar en un horario de apertura y ser futura." });
 
     if (await HasAppointmentOverlap(db, request.RequestedAt, duration))
@@ -311,7 +311,7 @@ admin.MapPost("/appointments", async (AdminCreateAppointmentRequest request, App
 
 app.Run();
 
-static bool IsWithinBusinessHours(DateTime start, int durationMinutes)
+static DateTime GetBusinessNow()\n{\n    var madrid = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");\n    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, madrid);\n}\n\nstatic CookieSecurePolicy appEnvironmentIsDevelopment(IWebHostEnvironment environment) =>\n    environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;\n\nstatic bool IsWithinBusinessHours(DateTime start, int durationMinutes)
 {
     if (start.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) return false;
     var end = start.AddMinutes(durationMinutes);
