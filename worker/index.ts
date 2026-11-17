@@ -146,6 +146,62 @@ async function getAppointment(env: Env, id: string): Promise<AppointmentRow | nu
     FROM appointments a JOIN services s ON s.id = a.service_id WHERE a.id = ?
   `).bind(id).first<AppointmentRow>();
 }
+
+async function availability(env: Env, date: string, serviceId: string): Promise<Response> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T12:00:00Z")))
+    return problem("Fecha no válida", 400, "Selecciona una fecha válida.");
+  if (!/^[0-9a-f-]{36}$/i.test(serviceId))
+    return problem("Servicio no válido", 400, "Selecciona un servicio.");
+
+  const service = await env.DB.prepare(
+    "SELECT duration_minutes AS durationMinutes FROM services WHERE id = ? AND is_active = 1"
+  ).bind(serviceId).first<{ durationMinutes: number | null }>();
+  if (!service) return problem("Servicio no disponible", 400, "El servicio seleccionado no está disponible.");
+
+  const duration = service.durationMinutes && service.durationMinutes > 0 ? service.durationMinutes : 30;
+  const lastDate = new Date(date + "T12:00:00Z");
+  lastDate.setUTCDate(lastDate.getUTCDate() + 61);
+  const lastDay = lastDate.toISOString().slice(0, 10);
+  const occupied = await env.DB.prepare(`
+    SELECT a.requested_at AS requestedAt, COALESCE(s.duration_minutes, 30) AS durationMinutes
+    FROM appointments a LEFT JOIN services s ON s.id = a.service_id
+    WHERE a.requested_at >= ? AND a.requested_at < ?
+      AND a.status IN ('Pendiente', 'Confirmada')
+  `).bind(date + "T00:00:00", lastDay + "T00:00:00").all<{ requestedAt: string; durationMinutes: number }>();
+
+  const now = localNow();
+  const availableTimes: string[] = [];
+  let nextAvailable: string | null = null;
+  for (let offset = 0; offset <= 60; offset++) {
+    if (offset > 0 && nextAvailable) break;
+    const dayDate = new Date(date + "T12:00:00Z");
+    dayDate.setUTCDate(dayDate.getUTCDate() + offset);
+    const day = dayDate.toISOString().slice(0, 10);
+    const weekday = dayDate.getUTCDay();
+    if (weekday === 0 || weekday === 6) continue;
+
+    for (const period of [{ start: 600, end: 840 }, { start: 960, end: 1200 }]) {
+      for (let minute = period.start; minute < period.end; minute += 30) {
+        const hour = String(Math.floor(minute / 60)).padStart(2, "0");
+        const mins = String(minute % 60).padStart(2, "0");
+        const candidate = day + "T" + hour + ":" + mins;
+        if (candidate <= now || minute + duration > period.end) continue;
+        const candidateStart = Date.parse(candidate + ":00Z");
+        const candidateEnd = candidateStart + duration * 60000;
+        const overlaps = occupied.results.some(item => {
+          const start = Date.parse(item.requestedAt.replace(" ", "T") + (item.requestedAt.length === 16 ? ":00" : "") + "Z");
+          const end = start + (item.durationMinutes > 0 ? item.durationMinutes : 30) * 60000;
+          return candidateStart < end && candidateEnd > start;
+        });
+        if (overlaps) continue;
+        if (offset === 0) availableTimes.push(hour + ":" + mins);
+        if (!nextAvailable) nextAvailable = candidate;
+      }
+    }
+  }
+  return json({ date, availableTimes, nextAvailable });
+}
+
 async function createAppointment(env: Env, body: Record<string, unknown>, manual: boolean): Promise<Response> {
   const name = clean(body.name, 100);
   const phone = clean(body.phone, 30);
@@ -203,6 +259,11 @@ export default {
         const headers = new Headers(response.headers);
         headers.set("X-Robots-Tag", "noindex, nofollow");
         return new Response(response.body, { status: response.status, headers });
+      }
+      if (path === "/api/availability" && method === "GET") {
+        const date = url.searchParams.get("date") || "";
+        const serviceId = url.searchParams.get("serviceId") || "";
+        return await availability(env, date, serviceId);
       }
       if (path === "/api/services" && method === "GET") return json(await listServices(env));
       if (path === "/api/appointments" && method === "POST") {
