@@ -102,14 +102,32 @@ function validDateTime(value: unknown): value is string {
     /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value) &&
     !Number.isNaN(Date.parse(value));
 }
-function withinBusinessHours(value: string, duration: number): boolean {
-  const date = new Date(value.slice(0, 10) + "T12:00:00");
-  const weekday = date.getDay();
-  if (weekday === 0 || weekday === 6) return false;
-  const [hour, minute] = value.slice(11, 16).split(":").map(Number);
-  const start = hour * 60 + minute;
-  const end = start + duration;
-  return (start >= 600 && end <= 840) || (start >= 960 && end <= 1200);
+type BusinessHour = { weekday: number; period: number; startTime: string; endTime: string };
+async function getBusinessHours(env: Env): Promise<BusinessHour[]> {
+  const result = await env.DB.prepare(
+    "SELECT weekday, period, start_time AS startTime, end_time AS endTime FROM business_hours ORDER BY weekday, period"
+  ).all<BusinessHour>();
+  return result.results;
+}
+function weekdayFor(value: string): number {
+  return new Date(value.slice(0, 10) + "T12:00:00Z").getUTCDay();
+}
+function timeMinutes(value: string): number {
+  const parts = value.split(":").map(Number);
+  return parts[0] * 60 + parts[1];
+}
+function fitsBusinessHours(value: string, duration: number, hours: BusinessHour[]): boolean {
+  const weekday = weekdayFor(value);
+  const start = timeMinutes(value.slice(11, 16));
+  return hours.some(period => period.weekday === weekday &&
+    start >= timeMinutes(period.startTime) &&
+    start + duration <= timeMinutes(period.endTime));
+}
+async function isBlocked(env: Env, startAt: string, endAt: string): Promise<boolean> {
+  const result = await env.DB.prepare(
+    "SELECT id FROM availability_blocks WHERE start_at < ? AND end_at > ? LIMIT 1"
+  ).bind(endAt, startAt).first<{ id: string }>();
+  return !!result;
 }
 function clean(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
@@ -168,6 +186,10 @@ async function availability(env: Env, date: string, serviceId: string): Promise<
     WHERE a.requested_at >= ? AND a.requested_at < ?
       AND a.status IN ('Pendiente', 'Confirmada')
   `).bind(date + "T00:00:00", lastDay + "T00:00:00").all<{ requestedAt: string; durationMinutes: number }>();
+  const hours = await getBusinessHours(env);
+  const blocks = await env.DB.prepare(
+    "SELECT start_at AS startAt, end_at AS endAt FROM availability_blocks WHERE start_at < ? AND end_at > ?"
+  ).bind(lastDay + "T00:00:00", date + "T00:00:00").all<{ startAt: string; endAt: string }>();
 
   const now = localNow();
   const availableTimes: string[] = [];
@@ -178,22 +200,29 @@ async function availability(env: Env, date: string, serviceId: string): Promise<
     dayDate.setUTCDate(dayDate.getUTCDate() + offset);
     const day = dayDate.toISOString().slice(0, 10);
     const weekday = dayDate.getUTCDay();
-    if (weekday === 0 || weekday === 6) continue;
-
-    for (const period of [{ start: 600, end: 840 }, { start: 960, end: 1200 }]) {
-      for (let minute = period.start; minute < period.end; minute += 30) {
+    const periods = hours.filter(item => item.weekday === weekday)
+      .sort((a, b) => a.period - b.period);
+    for (const period of periods) {
+      const periodStart = timeMinutes(period.startTime);
+      const periodEnd = timeMinutes(period.endTime);
+      for (let minute = periodStart; minute < periodEnd; minute += 30) {
         const hour = String(Math.floor(minute / 60)).padStart(2, "0");
         const mins = String(minute % 60).padStart(2, "0");
         const candidate = day + "T" + hour + ":" + mins;
-        if (candidate <= now || minute + duration > period.end) continue;
+        if (candidate <= now || minute + duration > periodEnd) continue;
         const candidateStart = Date.parse(candidate + ":00Z");
         const candidateEnd = candidateStart + duration * 60000;
-        const overlaps = occupied.results.some(item => {
+        const overlapsAppointment = occupied.results.some(item => {
           const start = Date.parse(item.requestedAt.replace(" ", "T") + (item.requestedAt.length === 16 ? ":00" : "") + "Z");
           const end = start + (item.durationMinutes > 0 ? item.durationMinutes : 30) * 60000;
           return candidateStart < end && candidateEnd > start;
         });
-        if (overlaps) continue;
+        const overlapsBlock = blocks.results.some(item => {
+          const start = Date.parse(item.startAt.replace(" ", "T") + (item.startAt.length === 16 ? ":00" : "") + "Z");
+          const end = Date.parse(item.endAt.replace(" ", "T") + (item.endAt.length === 16 ? ":00" : "") + "Z");
+          return candidateStart < end && candidateEnd > start;
+        });
+        if (overlapsAppointment || overlapsBlock) continue;
         if (offset === 0) availableTimes.push(hour + ":" + mins);
         if (!nextAvailable) nextAvailable = candidate;
       }
@@ -217,8 +246,13 @@ async function createAppointment(env: Env, body: Record<string, unknown>, manual
     .bind(serviceId).first<{ id: string; durationMinutes: number | null }>();
   if (!service) return problem("Servicio no disponible", 400, "El servicio seleccionado ya no está disponible.");
   const duration = service.durationMinutes && service.durationMinutes > 0 ? service.durationMinutes : 30;
-  if (requestedAt.slice(0, 16) <= localNow() || !withinBusinessHours(requestedAt, duration))
-    return problem("Horario no válido", 400, "Selecciona una fecha futura de lunes a viernes, de 10:00 a 14:00 o de 16:00 a 20:00.");
+  const hours = await getBusinessHours(env);
+  const endAt = new Date(Date.parse(requestedAt.slice(0, 16) + ":00Z") + duration * 60000)
+    .toISOString().slice(0, 16);
+  if (requestedAt.slice(0, 16) <= localNow() || !fitsBusinessHours(requestedAt, duration, hours))
+    return problem("Horario no válido", 400, "La fecha y hora no están dentro del horario de atención configurado.");
+  if (await isBlocked(env, requestedAt.slice(0, 16), endAt))
+    return problem("Horario no disponible", 409, "Ese horario está reservado o la barbería permanece cerrada.");
   const status = manual && body.confirm === false ? "Pendiente" : manual ? "Confirmada" : "Pendiente";
   const id = crypto.randomUUID();
   try {
@@ -290,6 +324,57 @@ export default {
           return problem("Solicitud no permitida", 403);
 
         if (path === "/api/admin/me" && method === "GET") return json({ authenticated: true, name: "Administración Barbería Rivas" });
+        if (path === "/api/admin/availability" && method === "GET") {
+          const hours = await env.DB.prepare("SELECT weekday, period, start_time AS startTime, end_time AS endTime FROM business_hours ORDER BY weekday, period").all<BusinessHour>();
+          const blocks = await env.DB.prepare("SELECT id, start_at AS startAt, end_at AS endAt, kind, label FROM availability_blocks ORDER BY start_at").all();
+          return json({ hours: hours.results, blocks: blocks.results });
+        }
+        if (path === "/api/admin/availability/hours" && method === "PUT") {
+          const body = await request.json() as Record<string, unknown>;
+          const rows = Array.isArray(body.hours) ? body.hours as Record<string, unknown>[] : [];
+          if (rows.length > 14 || rows.some(row =>
+            !Number.isInteger(row.weekday) || Number(row.weekday) < 0 || Number(row.weekday) > 6 ||
+            ![1, 2].includes(Number(row.period)) ||
+            typeof row.startTime !== "string" || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(row.startTime) ||
+            typeof row.endTime !== "string" || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(row.endTime) ||
+            row.startTime >= row.endTime))
+            return problem("Horario no válido", 400, "Revisa los días y las horas. La hora de fin debe ser posterior a la de inicio.");
+          const batch = [
+            env.DB.prepare("DELETE FROM business_hours"),
+            ...rows.map(row => env.DB.prepare("INSERT INTO business_hours (weekday, period, start_time, end_time) VALUES (?, ?, ?, ?)")
+              .bind(Number(row.weekday), Number(row.period), row.startTime as string, row.endTime as string))
+          ];
+          await env.DB.batch(batch);
+          return json({ message: "Horario de atención actualizado." });
+        }
+        if (path === "/api/admin/availability/blocks" && method === "POST") {
+          const body = await request.json() as Record<string, unknown>;
+          const startAt = typeof body.startAt === "string" ? body.startAt : "";
+          const endAt = typeof body.endAt === "string" ? body.endAt : "";
+          const kind = body.kind === "vacaciones" ? "vacaciones" : body.kind === "personal" ? "personal" : "";
+          const label = clean(body.label, 120);
+          if (!/^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(startAt) ||
+              !/^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(endAt) ||
+              startAt >= endAt || !kind || !label)
+            return problem("Datos no válidos", 400, "Indica un periodo correcto y un motivo.");
+          const conflict = await env.DB.prepare(`
+            SELECT a.id FROM appointments a JOIN services s ON s.id = a.service_id
+            WHERE a.status IN ('Pendiente', 'Confirmada')
+              AND datetime(a.requested_at, '+' || COALESCE(s.duration_minutes, 30) || ' minutes') > datetime(?)
+              AND a.requested_at < ? LIMIT 1
+          `).bind(startAt, endAt).first<{ id: string }>();
+          if (conflict) return problem("Hay citas en ese periodo", 409, "Antes de cerrar este horario, cambia o cancela las citas que ya estén reservadas.");
+          const id = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO availability_blocks (id, start_at, end_at, kind, label, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(id, startAt, endAt, kind, label, new Date().toISOString()).run();
+          return json({ id, message: "Periodo bloqueado correctamente." }, 201);
+        }
+        const blockMatch = path.match(/^\\/api\\/admin\\/availability\\/blocks\\/([0-9a-f-]{36})$/i);
+        if (blockMatch && method === "DELETE") {
+          const result = await env.DB.prepare("DELETE FROM availability_blocks WHERE id = ?").bind(blockMatch[1]).run();
+          if (!result.meta.changes) return problem("Periodo no encontrado", 404);
+          return json({ message: "Periodo eliminado. El horario vuelve a estar disponible." });
+        }
         if (path === "/api/admin/logout" && method === "POST") {
           return new Response(JSON.stringify({ authenticated: false }), {
             headers: { ...securityHeaders(), "Content-Type": "application/json", "Set-Cookie": "br_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0" }
