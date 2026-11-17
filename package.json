@@ -1,0 +1,18 @@
+{
+  "name": "barberia-rivas-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create barberia-rivas",
+    "db:migrate:local": "wrangler d1 migrations apply barberia-rivas --local",
+    "db:migrate:remote": "wrangler d1 migrations apply barberia-rivas --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20261117.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.50.0"
+  }
+}
