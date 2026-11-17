@@ -175,6 +175,16 @@
     </main>
   </div>
 
+  <dialog class="appointment-detail-dialog" id="appointment-detail-dialog">
+    <div class="appointment-detail-shell">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">DETALLE DE LA RESERVA</p><h2 id="appointment-detail-title">Cita</h2></div>
+        <button type="button" class="icon-button" id="close-appointment-detail" aria-label="Cerrar">×</button>
+      </div>
+      <div id="appointment-detail-content"></div>
+      <div class="appointment-detail-actions" id="appointment-detail-actions"></div>
+    </div>
+  </dialog>
   <dialog class="appointment-dialog" id="appointment-dialog">
     <form id="appointment-form" class="dialog-form"><input type="hidden" name="appointmentId">
       <div class="dialog-heading"><div><p class="eyebrow">AGENDA</p><h2 id="appointment-dialog-title">Nueva cita</h2></div><button type="button" class="icon-button" id="close-dialog" aria-label="Cerrar">×</button></div>
