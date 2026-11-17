@@ -596,3 +596,26 @@
     padding-right: 11px;
   }
 }
+
+
+/* Clientes y lista de espera */
+.customer-tools{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.customer-tools input{flex:1;min-width:0;height:44px;border:1px solid var(--line);padding:0 13px;background:#fff}
+.customer-form,.waitlist-form{display:grid;gap:14px;padding:18px;background:#fafaf8;border:1px solid var(--line);margin-bottom:18px}
+.customer-form label,.waitlist-form label{display:grid;gap:7px;font-size:11px;font-weight:700;min-width:0}
+.customer-form input,.customer-form textarea,.waitlist-form input,.waitlist-form select{width:100%;min-width:0;border:1px solid var(--line);background:#fff;padding:11px;min-height:43px}
+.customer-list,.waitlist-list{display:grid;gap:9px}
+.customer-card,.waitlist-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 16px;border:1px solid var(--line);background:#fff;min-width:0}
+.customer-card>div,.waitlist-card>div:first-child{display:grid;gap:5px;min-width:0}
+.customer-card strong,.waitlist-card strong{font-size:12px}
+.customer-card span,.waitlist-card span{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.customer-card small,.waitlist-card small{font-size:10px;color:#999}
+.waitlist-actions{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:700px){
+ .customer-tools{align-items:stretch;flex-direction:column}
+ .customer-tools .primary-button{width:100%}
+ .customer-card,.waitlist-card{align-items:stretch;flex-direction:column}
+ .customer-card .secondary-button,.waitlist-actions button{width:100%}
+ .waitlist-actions{display:grid;grid-template-columns:1fr 1fr}
+ .customer-form .form-row,.waitlist-form .form-row{grid-template-columns:1fr}
+}
