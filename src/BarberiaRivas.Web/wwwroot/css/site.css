@@ -208,3 +208,38 @@ h2 { font-size: clamp(40px, 5vw, 62px); line-height: 1.06; margin: 18px 0 24px; 
 .service-book-button span{font-size:16px}
 @media(max-width:850px){.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.service-grid{grid-template-columns:1fr;gap:12px}.service-card{padding:24px 22px}.service-description{min-height:0}.service-card h3{margin-top:20px}}
+
+
+/* Catálogo de servicios: tarjetas con estructura y alturas coherentes. */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+.service-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 28px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.service-card + .service-card { border-left: 0; }
+.service-card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.service-card h3 { overflow-wrap: anywhere; }
+.service-description { min-height: 4.5em; }
+.service-card-bottom { margin-top: auto; }
+.service-price-row { min-height: 58px; }
+.service-price { display: block; }
+.service-duration { text-align: right; }
+.service-book-button { min-height: 48px; justify-content: center; }
+@media (max-width: 640px) {
+  .service-grid { grid-template-columns: 1fr; gap: 12px; }
+  .service-card, .service-card + .service-card { border: 1px solid var(--line); padding: 24px 22px; }
+  .service-description { min-height: 0; }
+}
