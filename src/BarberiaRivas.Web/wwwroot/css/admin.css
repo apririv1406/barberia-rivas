@@ -789,3 +789,26 @@ input:focus, select:focus, textarea:focus {
   --rivas-brown-deep: #3F3833;
   --gold: #8F5C3D;
 }
+
+
+/* Estados hover discretos: evitar que el botón cambie por completo de color. */
+.action-button, .secondary-button, .primary-button {
+  transition: border-color .16s ease, color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.action-button:hover:not(.accept), .secondary-button:hover {
+  background: #f5f3f0;
+  border-color: #b8b0a7;
+  color: var(--rivas-brown-deep);
+}
+.action-button.accept:hover {
+  background: var(--rivas-brown);
+  border-color: var(--rivas-brown);
+  color: #fff;
+  box-shadow: 0 2px 7px #3f383322;
+  transform: translateY(-1px);
+}
+.primary-button:hover {
+  background: var(--rivas-brown);
+  box-shadow: 0 3px 9px #3f383322;
+  transform: translateY(-1px);
+}
