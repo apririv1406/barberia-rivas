@@ -15,6 +15,7 @@ if (menuToggle && mainNav) {
         const isOpen = mainNav.classList.toggle("open");
         menuToggle.setAttribute("aria-expanded", String(isOpen));
         menuToggle.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
+        menuToggle.textContent = isOpen ? "CERRAR" : "MENÚ";
     });
 
     mainNav.querySelectorAll("a").forEach(function (link) {
@@ -22,6 +23,7 @@ if (menuToggle && mainNav) {
             mainNav.classList.remove("open");
             menuToggle.setAttribute("aria-expanded", "false");
             menuToggle.setAttribute("aria-label", "Abrir menú");
+            menuToggle.textContent = "MENÚ";
         });
     });
 }
@@ -286,7 +288,7 @@ if (bookingForm) {
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
-                submitButton.innerHTML = 'Enviar solicitud <span>↗</span>';
+                submitButton.textContent = "Enviar solicitud";
             }
         }
     });
