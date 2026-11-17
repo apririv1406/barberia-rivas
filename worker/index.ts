@@ -15,6 +15,7 @@ type AppointmentRow = {
   email: string | null; notes: string | null; requestedAt: string;
   status: string; createdAt: string; serviceName: string;
   durationMinutes: number | null; price: number | null;
+  customerId?: string | null; outcome?: string; internalNotes?: string | null;
 };
 
 const ACTIVE = ["Pendiente", "Confirmada"];
@@ -255,11 +256,16 @@ async function createAppointment(env: Env, body: Record<string, unknown>, manual
     return problem("Horario no disponible", 409, "Ese horario está reservado o la barbería permanece cerrada.");
   const status = manual && body.confirm === false ? "Pendiente" : manual ? "Confirmada" : "Pendiente";
   const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const customerId = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO customers (id, name, phone, email, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, ?, ?) ON CONFLICT(phone) DO UPDATE SET name = excluded.name, email = COALESCE(excluded.email, customers.email), updated_at = excluded.updated_at")
+    .bind(customerId, name, phone, email, now, now).run();
+  const customer = await env.DB.prepare("SELECT id FROM customers WHERE phone = ?").bind(phone).first<{ id: string }>();
   try {
-    await env.DB.prepare(`
-      INSERT INTO appointments (id, service_id, customer_name, phone, email, notes, requested_at, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(id, serviceId, name, phone, email, notes, requestedAt.length === 16 ? requestedAt + ":00" : requestedAt, status, new Date().toISOString()).run();
+    await env.DB.prepare("INSERT INTO appointments (id, service_id, customer_id, customer_name, phone, email, notes, requested_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, serviceId, customer?.id || customerId, name, phone, email, notes, requestedAt.length === 16 ? requestedAt + ":00" : requestedAt, status, now).run();
+    await env.DB.prepare("INSERT INTO appointment_history (id, appointment_id, action, detail, created_at) VALUES (?, ?, 'Creada', ?, ?)")
+      .bind(crypto.randomUUID(), id, manual ? "Cita creada desde administración" : "Solicitud recibida desde la web", now).run();
   } catch (error) {
     const message = String(error);
     if (message.includes("APPOINTMENT_OVERLAP")) return problem("Horario ocupado", 409, "Ese horario se solapa con otra cita pendiente o confirmada.");
@@ -455,8 +461,8 @@ export default {
           const to = dateQuery(url.searchParams.get("to"));
           const status = url.searchParams.get("status");
           let sql = `
-            SELECT a.id, a.service_id AS serviceId, a.customer_name AS customerName, a.phone,
-              a.email, a.notes, a.requested_at AS requestedAt, a.status, a.created_at AS createdAt,
+            SELECT a.id, a.service_id AS serviceId, a.customer_id AS customerId, a.customer_name AS customerName, a.phone,
+              a.email, a.notes, a.internal_notes AS internalNotes, a.outcome, a.requested_at AS requestedAt, a.status, a.created_at AS createdAt,
               s.name AS serviceName, s.duration_minutes AS durationMinutes, s.price
             FROM appointments a JOIN services s ON s.id = a.service_id WHERE 1 = 1`;
           const values: string[] = [];
@@ -468,8 +474,88 @@ export default {
           const rows = await (values.length ? statement.bind(...values) : statement).all<AppointmentRow>();
           return json(rows.results);
         }
-        if (path === "/api/admin/appointments" && method === "POST") {
-          return await createAppointment(env, await request.json() as Record<string, unknown>, true);
+        if (path === "/api/admin/customers" && method === "GET") {
+          const q = (url.searchParams.get("q") || "").trim().slice(0, 100);
+          const rows = await env.DB.prepare("SELECT c.id, c.name, c.phone, c.email, c.notes, c.created_at AS createdAt, c.updated_at AS updatedAt, COUNT(a.id) AS appointmentCount, MAX(a.requested_at) AS lastAppointment FROM customers c LEFT JOIN appointments a ON a.customer_id = c.id WHERE (? = '' OR c.name LIKE '%' || ? || '%' OR c.phone LIKE '%' || ? || '%') GROUP BY c.id ORDER BY c.name LIMIT 200").bind(q, q, q).all();
+          return json(rows.results);
+        }
+        if (path === "/api/admin/customers" && method === "POST") {
+          const body = await request.json() as Record<string, unknown>;
+          const name = clean(body.name, 100), phone = clean(body.phone, 30);
+          const email = body.email == null || body.email === "" ? null : clean(body.email, 150);
+          const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 1000);
+          if (!name || !phone || (body.email && !email) || (body.notes && !notes)) return problem("Datos no válidos", 400, "Indica un nombre y teléfono válidos.");
+          const now = new Date().toISOString(), id = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO customers (id, name, phone, email, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(phone) DO UPDATE SET name = excluded.name, email = excluded.email, notes = excluded.notes, updated_at = excluded.updated_at").bind(id, name, phone, email, notes, now, now).run();
+          return json(await env.DB.prepare("SELECT id, name, phone, email, notes FROM customers WHERE phone = ?").bind(phone).first(), 201);
+        }
+        const customerMatch = path.match(/^\/api\/admin\/customers\/([0-9a-f-]{36})$/i);
+        if (customerMatch && method === "GET") {
+          const customer = await env.DB.prepare("SELECT id, name, phone, email, notes, created_at AS createdAt, updated_at AS updatedAt FROM customers WHERE id = ?").bind(customerMatch[1]).first();
+          if (!customer) return problem("Cliente no encontrado", 404);
+          const appointments = await env.DB.prepare("SELECT a.id, a.customer_name AS customerName, a.phone, a.requested_at AS requestedAt, a.status, a.outcome, s.name AS serviceName, s.duration_minutes AS durationMinutes, s.price FROM appointments a JOIN services s ON s.id = a.service_id WHERE a.customer_id = ? ORDER BY a.requested_at DESC LIMIT 100").bind(customerMatch[1]).all();
+          return json({ customer, appointments: appointments.results });
+        }
+        if (customerMatch && method === "PATCH") {
+          const body = await request.json() as Record<string, unknown>;
+          const current = await env.DB.prepare("SELECT id, name, phone, email, notes FROM customers WHERE id = ?").bind(customerMatch[1]).first<{id:string;name:string;phone:string;email:string|null;notes:string|null}>();
+          if (!current) return problem("Cliente no encontrado", 404);
+          const name = body.name === undefined ? current.name : clean(body.name, 100);
+          const phone = body.phone === undefined ? current.phone : clean(body.phone, 30);
+          const email = body.email === undefined ? current.email : (body.email === "" || body.email === null ? null : clean(body.email, 150));
+          const notes = body.notes === undefined ? current.notes : (body.notes === "" || body.notes === null ? null : clean(body.notes, 1000));
+          if (!name || !phone || (body.email && !email) || (body.notes && !notes)) return problem("Datos no válidos", 400, "Revisa los datos del cliente.");
+          try {
+            await env.DB.prepare("UPDATE customers SET name = ?, phone = ?, email = ?, notes = ?, updated_at = ? WHERE id = ?").bind(name, phone, email, notes, new Date().toISOString(), customerMatch[1]).run();
+            await env.DB.prepare("UPDATE appointments SET customer_name = ?, phone = ?, email = ? WHERE customer_id = ?").bind(name, phone, email, customerMatch[1]).run();
+          } catch (error) {
+            if (String(error).includes("UNIQUE")) return problem("Teléfono ya registrado", 409, "Ese teléfono pertenece a otro cliente.");
+            throw error;
+          }
+          return json({ message: "Cliente actualizado." });
+        }
+        if (path === "/api/admin/waitlist" && method === "GET") {
+          const rows = await env.DB.prepare("SELECT w.id, w.customer_name AS customerName, w.phone, w.service_id AS serviceId, s.name AS serviceName, w.preferred_date AS preferredDate, w.preferred_time AS preferredTime, w.notes, w.status, w.created_at AS createdAt FROM waitlist w LEFT JOIN services s ON s.id = w.service_id WHERE w.status IN ('Pendiente', 'Avisado') ORDER BY w.created_at").all();
+          return json(rows.results);
+        }
+        if (path === "/api/admin/waitlist" && method === "POST") {
+          const body = await request.json() as Record<string, unknown>;
+          const name = clean(body.name, 100), phone = clean(body.phone, 30);
+          const serviceId = body.serviceId ? String(body.serviceId) : null;
+          const preferredDate = body.preferredDate ? String(body.preferredDate) : null;
+          const preferredTime = body.preferredTime ? String(body.preferredTime) : null;
+          const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 500);
+          if (!name || !phone || (preferredDate && !/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) || (preferredTime && !["Mañana", "Tarde", "Indiferente"].includes(preferredTime)) || (serviceId && !/^[0-9a-f-]{36}$/i.test(serviceId)) || (body.notes && !notes)) return problem("Datos no válidos", 400, "Revisa los datos de la lista de espera.");
+          const id = crypto.randomUUID();
+          await env.DB.prepare("INSERT INTO waitlist (id, customer_name, phone, service_id, preferred_date, preferred_time, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").bind(id, name, phone, serviceId, preferredDate, preferredTime, notes, new Date().toISOString()).run();
+          return json({ id, message: "Añadido a la lista de espera." }, 201);
+        }
+        const waitlistMatch = path.match(/^\/api\/admin\/waitlist\/([0-9a-f-]{36})$/i);
+        if (waitlistMatch && method === "PATCH") {
+          const body = await request.json() as Record<string, unknown>;
+          if (!["Pendiente", "Avisado", "Resuelto", "Descartado"].includes(String(body.status))) return problem("Estado no válido", 400);
+          const result = await env.DB.prepare("UPDATE waitlist SET status = ? WHERE id = ?").bind(body.status, waitlistMatch[1]).run();
+          if (!result.meta.changes) return problem("Registro no encontrado", 404);
+          return json({ message: "Lista de espera actualizada." });
+        }
+        if (waitlistMatch && method === "DELETE") {
+          await env.DB.prepare("DELETE FROM waitlist WHERE id = ?").bind(waitlistMatch[1]).run();
+          return json({ message: "Registro eliminado." });
+        }
+        const resultMatch = path.match(/^\/api\/admin\/appointments\/([0-9a-f-]{36})\/result$/i);
+        if (resultMatch && method === "PATCH") {
+          const body = await request.json() as Record<string, unknown>;
+          if (!["Pendiente", "Completada", "No presentado"].includes(String(body.outcome))) return problem("Resultado no válido", 400);
+          const result = await env.DB.prepare("UPDATE appointments SET outcome = ? WHERE id = ? AND status = 'Confirmada'").bind(body.outcome, resultMatch[1]).run();
+          if (!result.meta.changes) return problem("Cita no encontrada", 404, "Solo puedes registrar el resultado de una cita confirmada.");
+          await env.DB.prepare("INSERT INTO appointment_history (id, appointment_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), resultMatch[1], body.outcome, "Resultado de la cita actualizado", new Date().toISOString()).run();
+          return json({ message: "Resultado de la cita actualizado." });
+        }
+        if (path === "/api/admin/appointment-history" && method === "GET") {
+          const appointmentId = url.searchParams.get("appointmentId") || "";
+          if (!/^[0-9a-f-]{36}$/i.test(appointmentId)) return problem("Cita no válida", 400);
+          const rows = await env.DB.prepare("SELECT action, detail, created_at AS createdAt FROM appointment_history WHERE appointment_id = ? ORDER BY created_at DESC").bind(appointmentId).all();
+          return json(rows.results);
         }
         const statusMatch = path.match(/^\/api\/admin\/appointments\/([0-9a-f-]{36})\/status$/i);
         if (statusMatch && method === "PATCH") {
