@@ -20,6 +20,8 @@ const serviceAdminList = document.querySelector("#service-admin-list");
 const agendaView = document.querySelector("#agenda-view");
 const servicesView = document.querySelector("#services-view");
 const availabilityView = document.querySelector("#availability-view");
+const customersView = document.querySelector("#customers-view");
+const waitlistView = document.querySelector("#waitlist-view");
 const businessHoursEditor = document.querySelector("#business-hours-editor");
 const availabilityBlockList = document.querySelector("#availability-block-list");
 const blockForm = document.querySelector("#block-form");
@@ -191,17 +193,25 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
         closeMobileMenu();
         const view = link.dataset.view;
         document.querySelectorAll(".side-nav [data-view]").forEach(function (item) { item.classList.toggle("active", item === link); });
-        agendaView.hidden = view === "services" || view === "availability";
+        agendaView.hidden = !["agenda", "pending"].includes(view);
         servicesView.hidden = view !== "services";
         availabilityView.hidden = view !== "availability";
-        document.querySelector("#new-appointment").hidden = view === "services" || view === "availability";
-        document.querySelector(".topbar h1").textContent = view === "services" ? "Servicios" : view === "availability" ? "Horarios y cierres" : "Agenda";
+        customersView.hidden = view !== "customers";
+        waitlistView.hidden = view !== "waitlist";
+        document.querySelector("#new-appointment").hidden = !["agenda", "pending"].includes(view);
+        document.querySelector(".topbar h1").textContent = ({ services: "Servicios", availability: "Horarios y cierres", customers: "Clientes", waitlist: "Lista de espera" })[view] || "Agenda";
         if (view === "services") {
             loadAdminServices();
             servicesView.scrollIntoView({ behavior: "smooth", block: "start" });
         } else if (view === "availability") {
             loadAdminAvailability();
             availabilityView.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (view === "customers") {
+            loadCustomers();
+            customersView.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (view === "waitlist") {
+            loadWaitlist();
+            waitlistView.scrollIntoView({ behavior: "smooth", block: "start" });
         } else if (view === "pending") {
             document.querySelector("#pendientes").scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
@@ -791,7 +801,65 @@ appointmentForm.addEventListener("submit", async function (event) {
     }
 });
 
+
+async function loadCustomers() {
+    const query = document.querySelector("#customer-search").value.trim();
+    try {
+        const items = await api("/api/admin/customers?q=" + encodeURIComponent(query));
+        const list = document.querySelector("#customer-list"); list.innerHTML = "";
+        if (!items.length) { list.innerHTML = '<p class="empty-state">No hay clientes registrados todavía.</p>'; return; }
+        items.forEach(function (item) {
+            const card = document.createElement("article"); card.className = "customer-card";
+            const last = item.lastAppointment ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(item.lastAppointment)) : "Sin citas";
+            card.innerHTML = '<div><strong>' + escapeText(item.name) + '</strong><span>' + escapeText(item.phone) + '</span><small>' + Number(item.appointmentCount) + ' citas · Última visita: ' + last + '</small></div><button class="secondary-button" type="button">Editar</button>';
+            card.querySelector("button").addEventListener("click", function () {
+                const form = document.querySelector("#customer-form"); form.hidden = false;
+                form.elements.id.value = item.id; form.elements.name.value = item.name; form.elements.phone.value = item.phone;
+                form.elements.email.value = item.email || ""; form.elements.notes.value = item.notes || "";
+                form.scrollIntoView({ behavior: "smooth", block: "center" });
+            }); list.append(card);
+        });
+    } catch (error) { showToast(error.message); }
+}
+document.querySelector("#customer-search").addEventListener("input", function () { clearTimeout(loadCustomers.timer); loadCustomers.timer = setTimeout(loadCustomers, 250); });
+document.querySelector("#new-customer").addEventListener("click", function () { const form = document.querySelector("#customer-form"); form.reset(); form.elements.id.value = ""; form.hidden = false; form.scrollIntoView({ behavior: "smooth", block: "center" }); });
+document.querySelector("#cancel-customer").addEventListener("click", function () { document.querySelector("#customer-form").hidden = true; });
+document.querySelector("#customer-form").addEventListener("submit", async function (event) {
+    event.preventDefault(); const form = event.currentTarget, data = new FormData(form), id = data.get("id");
+    const payload = { name: data.get("name"), phone: data.get("phone"), email: data.get("email"), notes: data.get("notes") };
+    try { await api(id ? "/api/admin/customers/" + id : "/api/admin/customers", { method: id ? "PATCH" : "POST", body: JSON.stringify(payload) }); form.hidden = true; form.reset(); await loadCustomers(); showToast("Cliente guardado correctamente."); }
+    catch (error) { document.querySelector("#customer-feedback").textContent = error.message; }
+});
+async function loadWaitlist() {
+    try {
+        const items = await api("/api/admin/waitlist"), list = document.querySelector("#waitlist-list"); list.innerHTML = "";
+        if (!items.length) { list.innerHTML = '<p class="empty-state">La lista de espera está vacía.</p>'; return; }
+        items.forEach(function (item) {
+            const card = document.createElement("article"); card.className = "waitlist-card";
+            card.innerHTML = '<div><strong>' + escapeText(item.customerName) + '</strong><span>' + escapeText(item.phone) + ' · ' + escapeText(item.serviceName || "Cualquier servicio") + '</span><small>' + escapeText(item.preferredDate || "Sin fecha") + ' · ' + escapeText(item.preferredTime || "Indiferente") + '</small></div><div class="waitlist-actions"><button class="secondary-button" type="button">WhatsApp</button><button class="secondary-button" type="button">Resuelto</button></div>';
+            card.querySelectorAll("button")[0].addEventListener("click", function () {
+                const digits = String(item.phone).replace(/\D/g, ""), phone = digits.startsWith("34") ? digits : "34" + digits;
+                window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent("Hola " + item.customerName + ", tenemos un hueco disponible en Barbería Rivas. ¿Te interesa?"), "_blank", "noopener");
+                api("/api/admin/waitlist/" + item.id, { method: "PATCH", body: JSON.stringify({ status: "Avisado" }) }).then(loadWaitlist).catch(error => showToast(error.message));
+            });
+            card.querySelectorAll("button")[1].addEventListener("click", function () { api("/api/admin/waitlist/" + item.id, { method: "PATCH", body: JSON.stringify({ status: "Resuelto" }) }).then(loadWaitlist).catch(error => showToast(error.message)); });
+            list.append(card);
+        });
+    } catch (error) { showToast(error.message); }
+}
+document.querySelector("#waitlist-form").addEventListener("submit", async function (event) {
+    event.preventDefault(); const form = event.currentTarget, data = new FormData(form);
+    try { await api("/api/admin/waitlist", { method: "POST", body: JSON.stringify({ name: data.get("name"), phone: data.get("phone"), serviceId: data.get("serviceId") || null, preferredDate: data.get("preferredDate") || null, preferredTime: data.get("preferredTime"), notes: data.get("notes") }) }); form.reset(); await loadWaitlist(); showToast("Añadido a la lista de espera."); }
+    catch (error) { document.querySelector("#waitlist-feedback").textContent = error.message; }
+});
+function populateWaitlistServices() {
+    const select = document.querySelector("#waitlist-service"); if (!select) return;
+    select.innerHTML = '<option value="">Cualquier servicio</option>';
+    services.forEach(function (service) { const option = document.createElement("option"); option.value = service.id; option.textContent = service.name; select.append(option); });
+}
+
 configureTimeOptions();
+populateWaitlistServices();
 adminDate.addEventListener("change", configureTimeOptions);
 updateBlockFormFields();
 document.querySelector("#block-start-date").min = dateKey(new Date());
