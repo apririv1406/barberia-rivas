@@ -20,7 +20,7 @@ button,a{-webkit-tap-highlight-color:transparent}
 img{max-width:100%}
 .site-header{height:86px;padding:0 clamp(22px,7vw,112px);display:flex;align-items:center;justify-content:space-between;gap:24px;position:sticky;top:0;z-index:50;background:rgba(238,240,237,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .brand{display:inline-flex;align-items:center;gap:12px;min-width:0}
-.brand-logo{width:58px;height:58px;object-fit:contain;display:block}
+.brand-logo{width:58px;height:58px;object-fit:cover;display:block;border-radius:50%;}
 .brand-wordmark{display:flex;flex-direction:column;gap:3px;color:var(--color-5);font-size:15px;line-height:1;font-weight:800;letter-spacing:1.3px;white-space:nowrap}
 .brand-wordmark strong{font-weight:800}
 .brand-wordmark small{margin-top:4px;color:var(--color-1);font-size:8px;letter-spacing:1.7px;font-weight:600}
@@ -48,7 +48,7 @@ h1 em,h2 em{color:var(--color-1);font-weight:500;font-style:italic}
 .hero-art-ring,.hero-art-inner{position:absolute;inset:0;border:1px solid rgba(64,18,16,.2);border-radius:50%}
 .hero-art-ring{transform:scale(1.13);border-color:rgba(143,92,61,.3)}
 .hero-art-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12%;background:rgba(255,255,255,.48);box-shadow:0 25px 80px rgba(64,18,16,.08)}
-.hero-art-inner img{width:67%;height:67%;object-fit:contain}
+.hero-art-inner img{width:67%;height:67%;object-fit:cover;border-radius:50%;}
 .hero-art-small,.hero-art-name{color:var(--color-1);font-size:8px;letter-spacing:2px;font-weight:800;text-align:center}
 .hero-art-name{margin-top:5px;color:var(--color-5)}
 .hero-art-index{position:absolute;right:-20px;bottom:12%;color:var(--color-2);font-size:9px;letter-spacing:2px;font-weight:800}
