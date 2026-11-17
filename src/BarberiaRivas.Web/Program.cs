@@ -120,8 +120,9 @@ app.MapGet("/api/availability", async (DateOnly? date, Guid? serviceId, IService
     var selectedTimes = new List<string>();
     DateTime? nextAvailable = null;
 
-    for (var offset = 0; offset <= 60 && !nextAvailable.HasValue; offset++)
+    for (var offset = 0; offset <= 60; offset++)
     {
+        if (offset > 0 && nextAvailable.HasValue) break;
         var day = firstDay.AddDays(offset);
         if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
         foreach (var period in new[] { (Start: 10, End: 14), (Start: 16, End: 20) })
