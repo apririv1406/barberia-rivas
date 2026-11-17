@@ -8,9 +8,27 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<Service> Services => Set<Service>();
 
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.ToTable("appointments");
+            entity.HasKey(appointment => appointment.Id);
+            entity.Property(appointment => appointment.CustomerName).HasMaxLength(100).IsRequired();
+            entity.Property(appointment => appointment.Phone).HasMaxLength(30).IsRequired();
+            entity.Property(appointment => appointment.Email).HasMaxLength(150);
+            entity.Property(appointment => appointment.Notes).HasMaxLength(500);
+            entity.Property(appointment => appointment.Status).HasMaxLength(20).IsRequired();
+            entity.HasIndex(appointment => new { appointment.RequestedAt, appointment.Status });
+            entity.HasOne(appointment => appointment.Service)
+                .WithMany()
+                .HasForeignKey(appointment => appointment.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         modelBuilder.Entity<Service>(entity =>
         {
