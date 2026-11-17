@@ -159,8 +159,8 @@ async function listServices(env: Env): Promise<ServiceRow[]> {
 }
 async function getAppointment(env: Env, id: string): Promise<AppointmentRow | null> {
   return await env.DB.prepare(`
-    SELECT a.id, a.service_id AS serviceId, a.customer_name AS customerName, a.phone,
-      a.email, a.notes, a.requested_at AS requestedAt, a.status, a.created_at AS createdAt,
+    SELECT a.id, a.service_id AS serviceId, a.customer_id AS customerId, a.customer_name AS customerName, a.phone,
+      a.email, a.notes, a.internal_notes AS internalNotes, a.outcome, a.requested_at AS requestedAt, a.status, a.created_at AS createdAt,
       s.name AS serviceName, s.duration_minutes AS durationMinutes, s.price
     FROM appointments a JOIN services s ON s.id = a.service_id WHERE a.id = ?
   `).bind(id).first<AppointmentRow>();
@@ -550,6 +550,42 @@ export default {
           if (!result.meta.changes) return problem("Cita no encontrada", 404, "Solo puedes registrar el resultado de una cita confirmada.");
           await env.DB.prepare("INSERT INTO appointment_history (id, appointment_id, action, detail, created_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), resultMatch[1], body.outcome, "Resultado de la cita actualizado", new Date().toISOString()).run();
           return json({ message: "Resultado de la cita actualizado." });
+        }
+        const editAppointmentMatch = path.match(/^\/api\/admin\/appointments\/([0-9a-f-]{36})$/i);
+        if (editAppointmentMatch && method === "PATCH") {
+          const body = await request.json() as Record<string, unknown>;
+          const current = await getAppointment(env, editAppointmentMatch[1]);
+          if (!current) return problem("Cita no encontrada", 404);
+          const name = body.name === undefined ? current.customerName : clean(body.name, 100);
+          const phone = body.phone === undefined ? current.phone : clean(body.phone, 30);
+          const serviceId = body.serviceId === undefined ? current.serviceId : String(body.serviceId);
+          const requestedAt = body.requestedAt === undefined ? current.requestedAt : body.requestedAt;
+          const notes = body.notes === undefined ? current.notes : (body.notes === "" || body.notes === null ? null : clean(body.notes, 500));
+          const internalNotes = body.internalNotes === undefined ? current.internalNotes : (body.internalNotes === "" || body.internalNotes === null ? null : clean(body.internalNotes, 1000));
+          if (!name || !phone || !/^[0-9a-f-]{36}$/i.test(serviceId) || !validDateTime(requestedAt) || (body.notes && !notes) || (body.internalNotes && !internalNotes))
+            return problem("Datos no válidos", 400, "Revisa los datos de la cita.");
+          const service = await env.DB.prepare("SELECT duration_minutes AS durationMinutes FROM services WHERE id = ?").bind(serviceId).first<{durationMinutes:number|null}>();
+          if (!service) return problem("Servicio no encontrado", 404);
+          const duration = service.durationMinutes && service.durationMinutes > 0 ? service.durationMinutes : 30;
+          const endAt = new Date(Date.parse(requestedAt.slice(0,16) + ":00Z") + duration * 60000).toISOString().slice(0,16);
+          if (current.status === "Confirmada" || current.status === "Pendiente") {
+            if (!fitsBusinessHours(requestedAt, duration, await getBusinessHours(env))) return problem("Horario no válido", 400, "La cita debe estar dentro del horario de atención.");
+            if (await isBlocked(env, requestedAt.slice(0,16), endAt)) return problem("Horario bloqueado", 409, "Ese periodo está cerrado o reservado.");
+          }
+          try {
+            await env.DB.prepare("UPDATE appointments SET service_id = ?, customer_name = ?, phone = ?, requested_at = ?, notes = ?, internal_notes = ? WHERE id = ?")
+              .bind(serviceId, name, phone, requestedAt, notes, internalNotes, editAppointmentMatch[1]).run();
+          } catch (error) {
+            if (String(error).includes("APPOINTMENT_OVERLAP")) return problem("Horario ocupado", 409, "El cambio se solapa con otra cita.");
+            throw error;
+          }
+          if (current.customerId) {
+            await env.DB.prepare("UPDATE customers SET name = ?, phone = ?, updated_at = ? WHERE id = ?")
+              .bind(name, phone, new Date().toISOString(), current.customerId).run();
+          }
+          await env.DB.prepare("INSERT INTO appointment_history (id, appointment_id, action, detail, created_at) VALUES (?, ?, 'Modificada', ?, ?)")
+            .bind(crypto.randomUUID(), editAppointmentMatch[1], "Se modificaron los datos de la cita", new Date().toISOString()).run();
+          return json({ message: "Cita actualizada correctamente." });
         }
         if (path === "/api/admin/appointment-history" && method === "GET") {
           const appointmentId = url.searchParams.get("appointmentId") || "";
