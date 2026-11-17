@@ -97,6 +97,61 @@ app.MapGet("/api/services", async (IServiceProvider services) =>
     return Results.Ok(items);
 });
 
+
+app.MapGet("/api/availability", async (DateOnly? date, Guid? serviceId, IServiceProvider services) =>
+{
+    var db = services.GetService<AppDbContext>();
+    if (db is null) return Results.Problem(title: "Reservas no disponibles", statusCode: 503);
+    if (!date.HasValue || !serviceId.HasValue)
+        return Results.BadRequest(new { message = "Selecciona un servicio y una fecha." });
+
+    var service = await db.Services.AsNoTracking()
+        .FirstOrDefaultAsync(item => item.Id == serviceId.Value && item.IsActive);
+    if (service is null) return Results.BadRequest(new { message = "El servicio seleccionado no está disponible." });
+
+    var duration = service.DurationMinutes is > 0 ? service.DurationMinutes.Value : 30;
+    var firstDay = date.Value.ToDateTime(TimeOnly.MinValue);
+    var lastDay = firstDay.AddDays(61);
+    var occupied = await db.Appointments.AsNoTracking().Include(item => item.Service)
+        .Where(item => item.RequestedAt >= firstDay && item.RequestedAt < lastDay &&
+            (item.Status == AppointmentStatus.Pending || item.Status == AppointmentStatus.Confirmed))
+        .ToListAsync();
+    var now = GetBusinessNow();
+    var selectedTimes = new List<string>();
+    DateTime? nextAvailable = null;
+
+    for (var offset = 0; offset <= 60 && !nextAvailable.HasValue; offset++)
+    {
+        var day = firstDay.AddDays(offset);
+        if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
+        foreach (var period in new[] { (Start: 10, End: 14), (Start: 16, End: 20) })
+        {
+            for (var minute = period.Start * 60; minute < period.End * 60; minute += 30)
+            {
+                var candidate = day.AddMinutes(minute);
+                if (candidate <= now || candidate.AddMinutes(duration) > day.AddHours(period.End)) continue;
+                var end = candidate.AddMinutes(duration);
+                var overlaps = occupied.Any(item =>
+                {
+                    var existingDuration = item.Service?.DurationMinutes is > 0 ? item.Service.DurationMinutes.Value : 30;
+                    var existingEnd = item.RequestedAt.AddMinutes(existingDuration);
+                    return candidate < existingEnd && end > item.RequestedAt;
+                });
+                if (overlaps) continue;
+                if (offset == 0) selectedTimes.Add(candidate.ToString("HH:mm"));
+                if (!nextAvailable.HasValue) nextAvailable = candidate;
+            }
+        }
+    }
+
+    return Results.Ok(new
+    {
+        date = date.Value.ToString("yyyy-MM-dd"),
+        availableTimes = selectedTimes,
+        nextAvailable = nextAvailable?.ToString("yyyy-MM-ddTHH:mm:ss")
+    });
+});
+
 app.MapPost("/api/appointments", async (CreateAppointmentRequest request, IServiceProvider services) =>
 {
     var db = services.GetService<AppDbContext>();
