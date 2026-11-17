@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Barbería Rivas",
+  "short_name": "Rivas",
+  "description": "Reserva tu cita en Barbería Rivas, Puente Genil.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#11100f",
+  "icons": [
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "1080x1080",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
