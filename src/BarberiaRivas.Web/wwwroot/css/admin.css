@@ -619,3 +619,15 @@
  .waitlist-actions{display:grid;grid-template-columns:1fr 1fr}
  .customer-form .form-row,.waitlist-form .form-row{grid-template-columns:1fr}
 }
+
+.customer-history{margin-top:20px;padding:18px;background:#fafaf8;border:1px solid var(--line)}
+.customer-history h3,.analytics-columns h3{font:600 17px "Playfair Display",serif;margin:0 0 12px}
+.customer-history article{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:11px}
+.customer-history article span{color:var(--muted);text-align:right}
+.customer-card-actions{display:flex;gap:7px}
+.analytics-panel .panel-heading select{min-height:42px;border:1px solid var(--line);background:#fff;padding:8px 12px}
+.analytics-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.analytics-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:26px}
+.analytics-list{display:grid;gap:8px}
+.analytics-row{display:flex;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);background:#fafaf8;font-size:11px}
+@media(max-width:700px){.customer-card-actions{display:grid;grid-template-columns:1fr 1fr}.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-columns{grid-template-columns:1fr}.customer-history article{flex-direction:column}.customer-history article span{text-align:left}}
