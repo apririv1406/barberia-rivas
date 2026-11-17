@@ -120,7 +120,7 @@
         <div class="customer-tools"><input id="customer-search" type="search" placeholder="Buscar por nombre o teléfono"><button class="primary-button" id="new-customer" type="button">+ Añadir cliente</button></div>
         <form id="customer-form" class="customer-form" hidden><input type="hidden" name="id">
           <div class="form-row"><label>Nombre<input name="name" maxlength="100" required></label><label>Teléfono<input name="phone" type="tel" maxlength="30" required></label></div>
-          <div class="form-row"><label>Correo electrónico<input name="email" type="email" maxlength="150"></label><label>Observaciones internas<textarea name="notes" rows="2" maxlength="1000"></textarea></label></div>
+          <label>Observaciones internas<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
           <div class="dialog-actions"><button class="secondary-button" id="cancel-customer" type="button">Cancelar</button><button class="primary-button" type="submit">Guardar cliente</button></div><p class="feedback" id="customer-feedback" role="alert"></p>
         </form><div id="customer-list" class="customer-list"><p class="empty-state">Cargando clientes…</p></div><div id="customer-history" class="customer-history" hidden></div>
       </section>
@@ -185,7 +185,7 @@
       </div>
       <label>Nombre del cliente<input name="name" maxlength="100" required placeholder="Nombre y apellidos"></label>
       <label>Teléfono<input name="phone" maxlength="30" type="tel" required placeholder="Teléfono de contacto"></label>
-      <label>Correo electrónico <span>(opcional)</span><input name="email" maxlength="150" type="email" placeholder="Correo electrónico"></label>
+      
       <label>Observaciones para la cita <span>(opcional)</span><textarea name="notes" rows="2" maxlength="500"></textarea></label><label>Nota interna <span>(solo visible en administración)</span><textarea name="internalNotes" rows="2" maxlength="1000"></textarea></label>
       <label class="confirm-choice"><input type="checkbox" name="confirm" checked> Crear como cita confirmada</label>
       <p class="feedback" id="appointment-feedback" role="alert"></p>
