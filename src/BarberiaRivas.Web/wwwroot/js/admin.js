@@ -13,6 +13,12 @@ const appointmentFeedback = document.querySelector("#appointment-feedback");
 const adminService = document.querySelector("#admin-service");
 const adminDate = document.querySelector("#admin-date");
 const adminTime = document.querySelector("#admin-time");
+const serviceDialog = document.querySelector("#service-dialog");
+const serviceForm = document.querySelector("#service-form");
+const serviceFeedback = document.querySelector("#service-feedback");
+const serviceAdminList = document.querySelector("#service-admin-list");
+const agendaView = document.querySelector("#agenda-view");
+const servicesView = document.querySelector("#services-view");
 
 let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = dateKey(new Date());
@@ -108,10 +114,106 @@ document.querySelector("#go-today").addEventListener("click", function () {
     loadMonth();
 });
 document.querySelector("#new-appointment").addEventListener("click", openDialog);
+document.querySelector("#new-service").addEventListener("click", function () { openServiceDialog(null); });
+document.querySelector("#close-service-dialog").addEventListener("click", closeServiceDialog);
+document.querySelector("#cancel-service-dialog").addEventListener("click", closeServiceDialog);
+serviceDialog.addEventListener("click", function (event) { if (event.target === serviceDialog) closeServiceDialog(); });
+document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+        event.preventDefault();
+        const view = link.dataset.view;
+        document.querySelectorAll(".side-nav [data-view]").forEach(function (item) { item.classList.toggle("active", item === link); });
+        agendaView.hidden = view === "services";
+        servicesView.hidden = view !== "services";
+        document.querySelector("#new-appointment").hidden = view === "services";
+        document.querySelector(".topbar h1").textContent = view === "services" ? "Servicios" : "Agenda";
+        if (view === "services") loadAdminServices();
+    });
+});
 document.querySelector("#close-dialog").addEventListener("click", closeDialog);
 document.querySelector("#cancel-dialog").addEventListener("click", closeDialog);
 dialog.addEventListener("click", function (event) {
     if (event.target === dialog) closeDialog();
+});
+
+async function loadAdminServices() {
+    try {
+        const items = await api("/api/admin/services");
+        serviceAdminList.innerHTML = "";
+        if (!items.length) {
+            serviceAdminList.innerHTML = '<p class="empty-state">Todavía no hay servicios. Añade el primero.</p>';
+            return;
+        }
+        items.forEach(function (service) {
+            const card = document.createElement("article");
+            card.className = "service-admin-card" + (service.isActive ? "" : " is-inactive");
+            const price = service.price === null ? "Precio sin indicar" : Number(service.price).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+            const duration = service.durationMinutes ? service.durationMinutes + " min" : "Duración sin indicar";
+            card.innerHTML =
+                '<div class="service-admin-main"><div><strong>' + escapeText(service.name) + '</strong>' +
+                '<p>' + escapeText(service.description || "Sin descripción") + '</p></div>' +
+                '<span class="service-state ' + (service.isActive ? "active" : "inactive") + '">' + (service.isActive ? "Visible en la web" : "Desactivado") + '</span></div>' +
+                '<div class="service-admin-meta"><span>' + escapeText(price) + '</span><span>' + escapeText(duration) + '</span><span>Orden: ' + escapeText(service.displayOrder) + '</span></div>' +
+                '<div class="service-admin-actions"><button type="button" class="secondary-button edit-service">Editar</button>' +
+                '<button type="button" class="secondary-button toggle-service">' + (service.isActive ? "Desactivar" : "Activar") + '</button></div>';
+            card.querySelector(".edit-service").addEventListener("click", function () { openServiceDialog(service); });
+            card.querySelector(".toggle-service").addEventListener("click", function () { toggleService(service); });
+            serviceAdminList.append(card);
+        });
+    } catch (error) {
+        serviceAdminList.innerHTML = '<p class="empty-state">' + escapeText(error.message) + '</p>';
+    }
+}
+
+function openServiceDialog(service) {
+    serviceForm.reset();
+    serviceFeedback.textContent = "";
+    serviceForm.elements.id.value = service ? service.id : "";
+    serviceForm.elements.name.value = service ? service.name : "";
+    serviceForm.elements.description.value = service ? (service.description || "") : "";
+    serviceForm.elements.price.value = service && service.price !== null ? service.price : "";
+    serviceForm.elements.durationMinutes.value = service && service.durationMinutes !== null ? service.durationMinutes : "";
+    serviceForm.elements.displayOrder.value = service ? service.displayOrder : (services.length + 1);
+    document.querySelector("#service-dialog-title").textContent = service ? "Editar servicio" : "Añadir servicio";
+    serviceDialog.showModal();
+}
+
+function closeServiceDialog() { serviceDialog.close(); }
+
+async function toggleService(service) {
+    const action = service.isActive ? "desactivar" : "activar";
+    if (!window.confirm("¿Quieres " + action + " «" + service.name + "»?")) return;
+    try {
+        await api("/api/admin/services/" + service.id, {
+            method: "PATCH", body: JSON.stringify({ isActive: !service.isActive })
+        });
+        await Promise.all([loadAdminServices(), loadServices()]);
+    } catch (error) { window.alert(error.message); }
+}
+
+serviceForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    serviceFeedback.textContent = "";
+    const data = new FormData(serviceForm);
+    const payload = {
+        name: data.get("name"),
+        description: data.get("description"),
+        price: data.get("price") === "" ? null : Number(data.get("price")),
+        durationMinutes: data.get("durationMinutes") === "" ? null : Number(data.get("durationMinutes")),
+        displayOrder: Number(data.get("displayOrder") || 0)
+    };
+    const id = data.get("id");
+    const button = serviceForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    try {
+        await api(id ? "/api/admin/services/" + id : "/api/admin/services", {
+            method: id ? "PATCH" : "POST", body: JSON.stringify(payload)
+        });
+        closeServiceDialog();
+        await Promise.all([loadAdminServices(), loadServices()]);
+    } catch (error) {
+        serviceFeedback.textContent = error.message;
+    } finally { button.disabled = false; }
 });
 
 async function refreshAll() {
