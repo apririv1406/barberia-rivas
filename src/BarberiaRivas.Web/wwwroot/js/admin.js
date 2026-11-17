@@ -645,6 +645,13 @@ function createAppointmentCard(item, compact) {
         actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
         actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
     }
+    if (item.status === "Confirmada") {
+        actions.push('<button class="action-button" data-result="Completada">Completada</button>');
+        actions.push('<button class="action-button" data-result="No presentado">No presentado</button>');
+    }
+    if (item.status === "Pendiente" || item.status === "Confirmada") {
+        actions.push('<button class="action-button" data-edit="true">Editar</button>');
+    }
     card.innerHTML =
         '<div class="appointment-time">' + time + '</div>' +
         '<div class="appointment-info"><strong>' + escapeText(item.customerName) + '</strong>' +
@@ -659,6 +666,12 @@ function createAppointmentCard(item, compact) {
         button.addEventListener("click", function () {
             updateStatus(item.id, button.dataset.action);
         });
+    });
+    card.querySelectorAll("[data-result]").forEach(function (button) {
+        button.addEventListener("click", function () { updateAppointmentResult(item.id, button.dataset.result); });
+    });
+    card.querySelectorAll("[data-edit]").forEach(function (button) {
+        button.addEventListener("click", function () { openEditDialog(item); });
     });
     return card;
 }
@@ -714,6 +727,16 @@ async function loadSummary() {
     document.querySelector("#stat-confirmed").textContent = summary.confirmedToday;
 }
 
+async function updateAppointmentResult(id, outcome) {
+    const question = outcome === "Completada" ? "¿Marcar esta cita como completada?" : "¿Marcar al cliente como no presentado?";
+    if (!window.confirm(question)) return;
+    try {
+        await api("/api/admin/appointments/" + id + "/result", { method: "PATCH", body: JSON.stringify({ outcome: outcome }) });
+        await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
+        showToast("Resultado de la cita actualizado.");
+    } catch (error) { showToast(error.message); }
+}
+
 async function updateStatus(id, status, skipConfirm) {
     const messages = {
         Confirmada: "¿Quieres confirmar esta cita?",
@@ -762,10 +785,30 @@ function configureTimeOptions() {
 
 function openDialog() {
     appointmentForm.reset();
+    appointmentForm.elements.appointmentId.value = "";
+    document.querySelector("#appointment-dialog-title").textContent = "Nueva cita";
     appointmentFeedback.textContent = "";
     adminDate.min = dateKey(new Date());
     adminDate.value = selectedDate;
     configureTimeOptions();
+    dialog.showModal();
+}
+function openEditDialog(item) {
+    appointmentForm.reset();
+    appointmentForm.elements.appointmentId.value = item.id;
+    document.querySelector("#appointment-dialog-title").textContent = "Editar cita";
+    appointmentFeedback.textContent = "";
+    adminDate.min = dateKey(new Date());
+    adminDate.value = item.requestedAt.slice(0, 10);
+    configureTimeOptions();
+    adminService.value = item.serviceId;
+    appointmentForm.elements.name.value = item.customerName;
+    appointmentForm.elements.phone.value = item.phone;
+    appointmentForm.elements.email.value = item.email || "";
+    appointmentForm.elements.notes.value = item.notes || "";
+    if (appointmentForm.elements.internalNotes) appointmentForm.elements.internalNotes.value = item.internalNotes || "";
+    adminTime.value = item.requestedAt.slice(11, 16);
+    appointmentForm.elements.confirm.checked = item.status === "Confirmada";
     dialog.showModal();
 }
 
@@ -777,6 +820,7 @@ appointmentForm.addEventListener("submit", async function (event) {
     event.preventDefault();
     appointmentFeedback.textContent = "";
     const data = new FormData(appointmentForm);
+    const appointmentId = data.get("appointmentId");
     const payload = {
         serviceId: data.get("serviceId"),
         name: data.get("name"),
@@ -789,7 +833,7 @@ appointmentForm.addEventListener("submit", async function (event) {
     const button = appointmentForm.querySelector("button[type='submit']");
     button.disabled = true;
     try {
-        await api("/api/admin/appointments", { method: "POST", body: JSON.stringify(payload) });
+        await api(appointmentId ? "/api/admin/appointments/" + appointmentId : "/api/admin/appointments", { method: appointmentId ? "PATCH" : "POST", body: JSON.stringify(payload) });
         closeDialog();
         selectedDate = data.get("date");
         visibleMonth = new Date(dateFromKey(selectedDate).getFullYear(), dateFromKey(selectedDate).getMonth(), 1);
