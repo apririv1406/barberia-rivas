@@ -22,7 +22,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.Cookie.Name = "BarberiaRivas.Admin";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = appEnvironmentIsDevelopment(builder.Environment);
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromHours(10);
         options.SlidingExpiration = true;
@@ -311,7 +311,13 @@ admin.MapPost("/appointments", async (AdminCreateAppointmentRequest request, App
 
 app.Run();
 
-static DateTime GetBusinessNow()\n{\n    var madrid = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");\n    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, madrid);\n}\n\nstatic CookieSecurePolicy appEnvironmentIsDevelopment(IWebHostEnvironment environment) =>\n    environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;\n\nstatic bool IsWithinBusinessHours(DateTime start, int durationMinutes)
+static DateTime GetBusinessNow()
+{
+    var madrid = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
+    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, madrid);
+}
+
+static bool IsWithinBusinessHours(DateTime start, int durationMinutes)
 {
     if (start.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) return false;
     var end = start.AddMinutes(durationMinutes);
