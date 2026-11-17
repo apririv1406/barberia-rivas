@@ -19,6 +19,10 @@ const serviceFeedback = document.querySelector("#service-feedback");
 const serviceAdminList = document.querySelector("#service-admin-list");
 const agendaView = document.querySelector("#agenda-view");
 const servicesView = document.querySelector("#services-view");
+const availabilityView = document.querySelector("#availability-view");
+const businessHoursEditor = document.querySelector("#business-hours-editor");
+const availabilityBlockList = document.querySelector("#availability-block-list");
+const blockForm = document.querySelector("#block-form");
 
 let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calendarView = "week";
@@ -154,6 +158,9 @@ document.querySelector("#view-month").addEventListener("click", function () {
 });
 document.querySelector("#new-appointment").addEventListener("click", openDialog);
 document.querySelector("#new-service").addEventListener("click", function () { openServiceDialog(null); });
+document.querySelector("#save-business-hours").addEventListener("click", saveBusinessHours);
+document.querySelector("#block-kind").addEventListener("change", updateBlockFormFields);
+blockForm.addEventListener("submit", saveAvailabilityBlock);
 document.querySelector("#close-service-dialog").addEventListener("click", closeServiceDialog);
 document.querySelector("#cancel-service-dialog").addEventListener("click", closeServiceDialog);
 serviceDialog.addEventListener("click", function (event) { if (event.target === serviceDialog) closeServiceDialog(); });
@@ -181,13 +188,17 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
         closeMobileMenu();
         const view = link.dataset.view;
         document.querySelectorAll(".side-nav [data-view]").forEach(function (item) { item.classList.toggle("active", item === link); });
-        agendaView.hidden = view === "services";
+        agendaView.hidden = view === "services" || view === "availability";
         servicesView.hidden = view !== "services";
-        document.querySelector("#new-appointment").hidden = view === "services";
-        document.querySelector(".topbar h1").textContent = view === "services" ? "Servicios" : "Agenda";
+        availabilityView.hidden = view !== "availability";
+        document.querySelector("#new-appointment").hidden = view === "services" || view === "availability";
+        document.querySelector(".topbar h1").textContent = view === "services" ? "Servicios" : view === "availability" ? "Horarios y cierres" : "Agenda";
         if (view === "services") {
             loadAdminServices();
             servicesView.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (view === "availability") {
+            loadAdminAvailability();
+            availabilityView.scrollIntoView({ behavior: "smooth", block: "start" });
         } else if (view === "pending") {
             document.querySelector("#pendientes").scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
@@ -244,6 +255,153 @@ function openServiceDialog(service) {
 }
 
 function closeServiceDialog() { serviceDialog.close(); }
+
+const weekdayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+function renderBusinessHours(hours) {
+    businessHoursEditor.innerHTML = "";
+    weekdayNames.forEach(function (name, weekday) {
+        const dayRows = hours.filter(function (item) { return Number(item.weekday) === weekday; });
+        const day = document.createElement("div");
+        day.className = "business-hours-day";
+        const heading = document.createElement("strong");
+        heading.textContent = name;
+        const periods = document.createElement("div");
+        periods.className = "business-hours-periods";
+        [1, 2].forEach(function (period) {
+            const current = dayRows.find(function (item) { return Number(item.period) === period; });
+            const row = document.createElement("div");
+            row.className = "business-hours-period";
+            const label = document.createElement("span");
+            label.textContent = period === 1 ? "Turno 1" : "Turno 2";
+            const start = document.createElement("input");
+            start.type = "time";
+            start.className = "hours-start";
+            start.value = current ? current.startTime : "";
+            start.setAttribute("aria-label", name + " " + label.textContent + " desde");
+            const separator = document.createElement("span");
+            separator.textContent = "a";
+            const end = document.createElement("input");
+            end.type = "time";
+            end.className = "hours-end";
+            end.value = current ? current.endTime : "";
+            end.setAttribute("aria-label", name + " " + label.textContent + " hasta");
+            row.append(label, start, separator, end);
+            periods.append(row);
+        });
+        day.append(heading, periods);
+        day.dataset.weekday = String(weekday);
+        businessHoursEditor.append(day);
+    });
+}
+
+async function loadAdminAvailability() {
+    try {
+        const result = await api("/api/admin/availability");
+        renderBusinessHours(result.hours || []);
+        renderAvailabilityBlocks(result.blocks || []);
+    } catch (error) {
+        businessHoursEditor.innerHTML = '<p class="empty-state">' + escapeText(error.message) + '</p>';
+    }
+}
+
+async function saveBusinessHours() {
+    const rows = [];
+    businessHoursEditor.querySelectorAll(".business-hours-day").forEach(function (day) {
+        const weekday = Number(day.dataset.weekday);
+        day.querySelectorAll(".business-hours-period").forEach(function (period, index) {
+            const startTime = period.querySelector(".hours-start").value;
+            const endTime = period.querySelector(".hours-end").value;
+            if (startTime && endTime) rows.push({ weekday: weekday, period: index + 1, startTime: startTime, endTime: endTime });
+        });
+    });
+    const button = document.querySelector("#save-business-hours");
+    button.disabled = true;
+    try {
+        await api("/api/admin/availability/hours", { method: "PUT", body: JSON.stringify({ hours: rows }) });
+        showToast("Horario de atención guardado.");
+        await loadAdminAvailability();
+    } catch (error) { showToast(error.message); }
+    finally { button.disabled = false; }
+}
+
+function updateBlockFormFields() {
+    const personal = document.querySelector("#block-kind").value === "personal";
+    document.querySelector("#personal-time-fields").hidden = !personal;
+    document.querySelector("#block-end-date").closest("label").hidden = personal;
+    document.querySelector("#block-end-date").required = !personal;
+    document.querySelector("#block-start-time").required = personal;
+    document.querySelector("#block-end-time").required = personal;
+}
+
+function addDaysToKey(value, days) {
+    const date = dateFromKey(value);
+    date.setDate(date.getDate() + days);
+    return dateKey(date);
+}
+
+async function saveAvailabilityBlock(event) {
+    event.preventDefault();
+    const data = new FormData(blockForm);
+    const kind = data.get("kind");
+    const startDate = data.get("startDate");
+    const endDate = kind === "vacaciones" ? addDaysToKey(data.get("endDate"), 1) : startDate;
+    const startAt = startDate + "T" + (kind === "vacaciones" ? "00:00" : data.get("startTime"));
+    const endAt = endDate + "T" + (kind === "vacaciones" ? "00:00" : data.get("endTime"));
+    const feedback = document.querySelector("#block-feedback");
+    feedback.textContent = "";
+    const button = blockForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    try {
+        await api("/api/admin/availability/blocks", {
+            method: "POST",
+            body: JSON.stringify({ kind: kind, startAt: startAt, endAt: endAt, label: data.get("label") })
+        });
+        blockForm.reset();
+        document.querySelector("#block-start-time").value = "10:00";
+        document.querySelector("#block-end-time").value = "11:00";
+        updateBlockFormFields();
+        showToast(kind === "vacaciones" ? "Periodo de vacaciones guardado." : "Reserva personal guardada.");
+        await loadAdminAvailability();
+    } catch (error) { feedback.textContent = error.message; }
+    finally { button.disabled = false; }
+}
+
+function renderAvailabilityBlocks(blocks) {
+    availabilityBlockList.innerHTML = "";
+    if (!blocks.length) {
+        availabilityBlockList.innerHTML = '<p class="empty-state">No hay vacaciones ni reservas personales.</p>';
+        return;
+    }
+    blocks.forEach(function (item) {
+        const row = document.createElement("div");
+        row.className = "availability-block-item";
+        const start = item.startAt.replace(" ", "T");
+        const end = item.endAt.replace(" ", "T");
+        const startDate = start.slice(0, 10);
+        const endDate = end.slice(0, 10);
+        const isVacation = item.kind === "vacaciones";
+        let range = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(dateFromKey(startDate));
+        if (isVacation) {
+            const inclusiveEnd = addDaysToKey(endDate, -1);
+            range += " – " + new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" }).format(dateFromKey(inclusiveEnd));
+        } else {
+            range += " · " + start.slice(11, 16) + "–" + end.slice(11, 16);
+        }
+        row.innerHTML = '<div><strong>' + escapeText(item.label) + '</strong><span>' +
+            (isVacation ? "Vacaciones / cierre" : "Reserva personal") + ' · ' + escapeText(range) +
+            '</span></div><button type="button" class="secondary-button remove-block">Eliminar</button>';
+        row.querySelector(".remove-block").addEventListener("click", async function () {
+            if (!window.confirm("¿Eliminar este bloqueo? El horario volverá a estar disponible.")) return;
+            try {
+                await api("/api/admin/availability/blocks/" + item.id, { method: "DELETE" });
+                await loadAdminAvailability();
+                showToast("Bloqueo eliminado.");
+            } catch (error) { showToast(error.message); }
+        });
+        availabilityBlockList.append(row);
+    });
+}
 
 async function toggleService(service) {
     const action = service.isActive ? "desactivar" : "activar";
@@ -617,5 +775,9 @@ appointmentForm.addEventListener("submit", async function (event) {
 });
 
 configureTimeOptions();
+updateBlockFormFields();
+document.querySelector("#block-start-date").min = dateKey(new Date());
+document.querySelector("#block-end-date").min = dateKey(new Date());
+document.querySelector("#block-start-date").addEventListener("change", function () { document.querySelector("#block-end-date").min = this.value; });
 adminDate.min = dateKey(new Date());
 api("/api/admin/me").then(showAdmin).catch(showLogin);
