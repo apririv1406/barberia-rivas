@@ -205,12 +205,12 @@ async function availability(env: Env, date: string, serviceId: string): Promise<
 async function createAppointment(env: Env, body: Record<string, unknown>, manual: boolean): Promise<Response> {
   const name = clean(body.name, 100);
   const phone = clean(body.phone, 30);
-  const email = body.email == null || body.email === "" ? null : clean(body.email, 150);
+  const email = null;
   const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 500);
   const serviceId = typeof body.serviceId === "string" ? body.serviceId : "";
   const requestedAt = body.requestedAt;
-  if (!name || !phone || (body.email && !email) || (body.notes && !notes))
-    return problem("Datos no válidos", 400, "Revisa el nombre, teléfono, correo y observaciones.");
+  if (!name || !phone || (body.notes && !notes))
+    return problem("Datos no válidos", 400, "Revisa el nombre, teléfono y observaciones.");
   if (!/^[0-9a-f-]{36}$/i.test(serviceId)) return problem("Servicio no válido", 400, "Selecciona uno de nuestros servicios.");
   if (!validDateTime(requestedAt)) return problem("Fecha u hora no válida", 400, "Selecciona una fecha y hora válidas.");
   const service = await env.DB.prepare("SELECT id, duration_minutes AS durationMinutes FROM services WHERE id = ? AND is_active = 1")
