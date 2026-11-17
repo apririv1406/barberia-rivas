@@ -1,9 +1,16 @@
-# .NET
+# .NET legacy / local IDE
 **/bin/
 **/obj/
 .vs/
 *.user
 *.suo
+
+# Node / Cloudflare
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+dist/
 
 # IDE
 .idea/
