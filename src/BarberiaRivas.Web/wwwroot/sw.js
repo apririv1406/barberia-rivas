@@ -1,4 +1,4 @@
-const CACHE_NAME = "barberia-rivas-v1";
+const CACHE_NAME = "barberia-rivas-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/images/logo.jpg"];
 
 self.addEventListener("install", function (event) {
