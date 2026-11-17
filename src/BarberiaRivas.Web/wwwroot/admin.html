@@ -59,20 +59,29 @@
         <div class="calendar-panel panel">
           <div class="panel-heading calendar-heading">
             <div><p class="eyebrow">PLANIFICACIÓN</p><h2 id="month-label">—</h2></div>
-            <div class="calendar-controls">
-              <button class="icon-button" id="prev-month" aria-label="Mes anterior">‹</button>
-              <button class="today-button" id="go-today">Hoy</button>
-              <button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button>
+            <div class="calendar-toolbar">
+              <div class="calendar-view-toggle" role="group" aria-label="Vista del calendario">
+                <button type="button" id="view-week" class="active" aria-pressed="true">Semana</button>
+                <button type="button" id="view-month" aria-pressed="false">Mes</button>
+              </div>
+              <div class="calendar-controls">
+                <button class="icon-button" id="prev-month" aria-label="Periodo anterior">‹</button>
+                <button class="today-button" id="go-today">Hoy</button>
+                <button class="icon-button" id="next-month" aria-label="Periodo siguiente">›</button>
+              </div>
             </div>
           </div>
+          <div id="month-calendar">
           <div class="calendar-grid calendar-weekdays">
             <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
           </div>
           <div class="calendar-grid" id="calendar-days"></div>
           <div class="calendar-legend"><span><i class="dot pending-dot"></i>Pendiente</span><span><i class="dot confirmed-dot"></i>Confirmada</span></div>
+          </div>
+          <div id="week-calendar" class="week-calendar" hidden></div>
         </div>
 
-        <div class="day-panel panel">
+        <div class="day-panel panel" id="month-day-panel">
           <div class="panel-heading day-heading">
             <div><p class="eyebrow">DETALLE DEL DÍA</p><h2 id="selected-day-label">—</h2></div>
             <span class="day-count" id="day-count">0 citas</span>
