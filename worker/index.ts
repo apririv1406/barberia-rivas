@@ -299,6 +299,7 @@ export default {
         const serviceId = url.searchParams.get("serviceId") || "";
         return await availability(env, date, serviceId);
       }
+      if (path === "/api/hours" && method === "GET") return json(await getBusinessHours(env));
       if (path === "/api/services" && method === "GET") return json(await listServices(env));
       if (path === "/api/appointments" && method === "POST") {
         if (!isSameOrigin(request)) return problem("Origen no permitido", 403);
