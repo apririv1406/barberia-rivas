@@ -64,6 +64,15 @@ async function api(url, options) {
     return result;
 }
 
+function showToast(message) {
+    const toast = document.querySelector("#admin-toast");
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add("is-visible");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(function () { toast.classList.remove("is-visible"); }, 5000);
+}
+
 function showLogin() {
     adminApp.hidden = true;
     loginScreen.hidden = false;
@@ -244,7 +253,7 @@ async function toggleService(service) {
             method: "PATCH", body: JSON.stringify({ isActive: !service.isActive })
         });
         await Promise.all([loadAdminServices(), loadServices()]);
-    } catch (error) { window.alert(error.message); }
+    } catch (error) { showToast(error.message); }
 }
 
 serviceForm.addEventListener("submit", async function (event) {
@@ -456,10 +465,12 @@ function createAppointmentCard(item, compact) {
     const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.requestedAt));
     const actions = [];
     if (item.status === "Pendiente") {
-        actions.push('<button class="action-button accept" data-action="Confirmada">Confirmar</button>');
-        actions.push('<button class="action-button reject" data-action="Rechazada">Rechazar</button>');
+        actions.push('<button class="action-button accept" data-whatsapp="Confirmada">Confirmar por WhatsApp</button>');
+        actions.push('<button class="action-button reject" data-whatsapp="Rechazada">Rechazar por WhatsApp</button>');
+        actions.push('<button class="action-button" data-whatsapp="Cambiar">Cambiar por WhatsApp</button>');
     } else if (item.status === "Confirmada") {
-        actions.push('<button class="action-button reject" data-action="Cancelada">Cancelar cita</button>');
+        actions.push('<button class="action-button" data-whatsapp="Cambiar">Cambiar por WhatsApp</button>');
+        actions.push('<button class="action-button reject" data-whatsapp="Cancelada">Cancelar por WhatsApp</button>');
     }
     card.innerHTML =
         '<div class="appointment-time">' + time + '</div>' +
@@ -468,12 +479,35 @@ function createAppointmentCard(item, compact) {
         (item.notes ? '<small>' + escapeText(item.notes) + '</small>' : '') +
         '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(item.status) + '</span></div>' +
         '<div class="appointment-actions">' + actions.join("") + '</div>';
+    card.querySelectorAll("[data-whatsapp]").forEach(function (button) {
+        button.addEventListener("click", function () { sendWhatsAppAction(item, button.dataset.whatsapp); });
+    });
     card.querySelectorAll("[data-action]").forEach(function (button) {
         button.addEventListener("click", function () {
             updateStatus(item.id, button.dataset.action);
         });
     });
     return card;
+}
+
+function sendWhatsAppAction(item, action) {
+    const digits = String(item.phone || "").replace(/\D/g, "");
+    const phone = digits.startsWith("00") ? digits.slice(2) : (digits.startsWith("34") ? digits : "34" + digits);
+    if (!phone || phone.length < 9) {
+        showToast("Este cliente no tiene un teléfono válido para WhatsApp.");
+        return;
+    }
+    const appointmentDate = new Date(item.requestedAt);
+    const date = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(appointmentDate);
+    const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(appointmentDate);
+    const messages = {
+        Confirmada: "Hola " + item.customerName + ", tu cita en Barbería Rivas para el " + date + " a las " + time + " ha quedado confirmada. ¡Te esperamos!",
+        Rechazada: "Hola " + item.customerName + ", sentimos comunicarte que no podemos atender tu solicitud de cita del " + date + " a las " + time + ". Disculpa las molestias.",
+        Cambiar: "Hola " + item.customerName + ", necesitamos cambiar tu cita en Barbería Rivas prevista para el " + date + " a las " + time + ". ¿Qué otra fecha u hora te vendría bien?",
+        Cancelada: "Hola " + item.customerName + ", te confirmamos que tu cita en Barbería Rivas del " + date + " a las " + time + " ha sido cancelada."
+    };
+    window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(messages[action]), "_blank", "noopener");
+    if (action !== "Cambiar") updateStatus(item.id, action, true);
 }
 
 async function loadPending() {
@@ -507,20 +541,20 @@ async function loadSummary() {
     document.querySelector("#stat-confirmed").textContent = summary.confirmedToday;
 }
 
-async function updateStatus(id, status) {
+async function updateStatus(id, status, skipConfirm) {
     const messages = {
         Confirmada: "¿Quieres confirmar esta cita?",
         Rechazada: "¿Quieres rechazar esta solicitud?",
         Cancelada: "¿Quieres cancelar esta cita?"
     };
-    if (!window.confirm(messages[status])) return;
+    if (!skipConfirm && !window.confirm(messages[status])) return;
     try {
         await api("/api/admin/appointments/" + id + "/status", {
             method: "PATCH", body: JSON.stringify({ status: status })
         });
         await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
     } catch (error) {
-        window.alert(error.message);
+        showToast(error.message);
     }
 }
 
