@@ -204,7 +204,7 @@ async function loadInstagramFeed() {
             link.href = "https://www.instagram.com/barberia_rivas/";
             link.target = "_blank";
             link.rel = "noopener noreferrer";
-            link.textContent = "VER INSTAGRAM ↗";
+            link.textContent = "VER INSTAGRAM";
             empty.append(document.createElement("br"), link);
             grid.append(empty);
             if (footnote) footnote.textContent = "Síguenos en Instagram para descubrir los últimos cortes y novedades.";
@@ -235,7 +235,7 @@ async function loadInstagramFeed() {
             const type = document.createElement("span");
             type.textContent = post.mediaType === "VIDEO" ? "REEL / VÍDEO" : "BARBERÍA RIVAS";
             const arrow = document.createElement("span");
-            arrow.textContent = "VER PUBLICACIÓN ↗";
+            arrow.textContent = "VER PUBLICACIÓN";
             label.append(type, arrow);
             link.append(image, label);
             grid.append(link);
@@ -257,7 +257,7 @@ async function loadInstagramFeed() {
         link.href = "https://www.instagram.com/barberia_rivas/";
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.textContent = "ABRIR INSTAGRAM ↗";
+        link.textContent = "ABRIR INSTAGRAM";
         fallback.append(document.createElement("br"), link);
         grid.append(fallback);
         if (footnote) footnote.textContent = "Instagram · @barberia_rivas";
