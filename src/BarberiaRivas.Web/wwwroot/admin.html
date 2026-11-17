@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11100f">
+  <title>Administración | Barbería Rivas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="/js/admin.js" defer></script>
+</head>
+<body class="admin-body">
+  <section class="login-screen" id="login-screen">
+    <form class="login-card" id="login-form">
+      <a href="/" class="login-brand"><img src="/images/logo.jpg" alt="Barbería Rivas"></a>
+      <p class="eyebrow">ÁREA PRIVADA</p>
+      <h1>Bienvenido.</h1>
+      <p class="muted">Accede a la agenda y gestiona las citas de la barbería.</p>
+      <label>Contraseña
+        <input type="password" name="password" autocomplete="current-password" required autofocus>
+      </label>
+      <label class="remember"><input type="checkbox" name="remember"> Mantener la sesión iniciada</label>
+      <button class="primary-button" type="submit">Entrar <span>→</span></button>
+      <p class="feedback" id="login-feedback" role="alert"></p>
+      <a class="back-link" href="/">← Volver a la web</a>
+    </form>
+  </section>
+
+  <div class="admin-app" id="admin-app" hidden>
+    <aside class="sidebar">
+      <a class="sidebar-brand" href="/"><img src="/images/logo.jpg" alt="Barbería Rivas"><span>BARBERÍA <b>RIVAS</b><small>ADMINISTRACIÓN</small></span></a>
+      <nav class="side-nav">
+        <a class="active" href="#agenda" data-view="agenda"><span>▦</span> Agenda</a>
+        <a href="#pendientes" data-view="pending"><span>◷</span> Solicitudes pendientes <i id="pending-nav-count">0</i></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <a href="/" target="_blank" rel="noopener">Ver página web ↗</a>
+        <button id="logout-button" type="button">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="eyebrow">BARBERÍA RIVAS · PUENTE GENIL</p><h1>Agenda</h1></div>
+        <button class="primary-button new-appointment-button" id="new-appointment">+ Nueva cita</button>
+      </header>
+
+      <section class="stats-grid" aria-label="Resumen">
+        <article class="stat-card"><span>Solicitudes pendientes</span><strong id="stat-pending">—</strong><small>Por revisar</small></article>
+        <article class="stat-card"><span>Citas de hoy</span><strong id="stat-today">—</strong><small>Solicitadas o confirmadas</small></article>
+        <article class="stat-card"><span>Confirmadas hoy</span><strong id="stat-confirmed">—</strong><small>En agenda</small></article>
+      </section>
+
+      <section class="workspace" id="agenda">
+        <div class="calendar-panel panel">
+          <div class="panel-heading calendar-heading">
+            <div><p class="eyebrow">PLANIFICACIÓN</p><h2 id="month-label">—</h2></div>
+            <div class="calendar-controls">
+              <button class="icon-button" id="prev-month" aria-label="Mes anterior">‹</button>
+              <button class="today-button" id="go-today">Hoy</button>
+              <button class="icon-button" id="next-month" aria-label="Mes siguiente">›</button>
+            </div>
+          </div>
+          <div class="calendar-grid calendar-weekdays">
+            <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          </div>
+          <div class="calendar-grid" id="calendar-days"></div>
+          <div class="calendar-legend"><span><i class="dot pending-dot"></i>Pendiente</span><span><i class="dot confirmed-dot"></i>Confirmada</span></div>
+        </div>
+
+        <div class="day-panel panel">
+          <div class="panel-heading day-heading">
+            <div><p class="eyebrow">DETALLE DEL DÍA</p><h2 id="selected-day-label">—</h2></div>
+            <span class="day-count" id="day-count">0 citas</span>
+          </div>
+          <div class="day-appointments" id="day-appointments"><p class="empty-state">Selecciona un día para consultar la agenda.</p></div>
+        </div>
+      </section>
+
+      <section class="panel pending-panel" id="pendientes">
+        <div class="panel-heading">
+          <div><p class="eyebrow">REQUIEREN TU ATENCIÓN</p><h2>Solicitudes pendientes</h2></div>
+          <span class="day-count" id="pending-count-label">0 solicitudes</span>
+        </div>
+        <div id="pending-list" class="pending-list"><p class="empty-state">No hay solicitudes pendientes.</p></div>
+      </section>
+      <footer class="admin-footer">Barbería Rivas · Gestión interna de citas</footer>
+    </main>
+  </div>
+
+  <dialog class="appointment-dialog" id="appointment-dialog">
+    <form id="appointment-form" class="dialog-form">
+      <div class="dialog-heading"><div><p class="eyebrow">AGENDA</p><h2>Nueva cita</h2></div><button type="button" class="icon-button" id="close-dialog" aria-label="Cerrar">×</button></div>
+      <label>Servicio<select name="serviceId" id="admin-service" required><option value="">Selecciona un servicio</option></select></label>
+      <div class="form-row">
+        <label>Fecha<input type="date" name="date" id="admin-date" required></label>
+        <label>Hora<select name="time" id="admin-time" required></select></label>
+      </div>
+      <label>Nombre del cliente<input name="name" maxlength="100" required placeholder="Nombre y apellidos"></label>
+      <label>Teléfono<input name="phone" maxlength="30" type="tel" required placeholder="Teléfono de contacto"></label>
+      <label>Correo electrónico <span>(opcional)</span><input name="email" maxlength="150" type="email" placeholder="Correo electrónico"></label>
+      <label>Observaciones <span>(opcional)</span><textarea name="notes" rows="2" maxlength="500"></textarea></label>
+      <label class="confirm-choice"><input type="checkbox" name="confirm" checked> Crear como cita confirmada</label>
+      <p class="feedback" id="appointment-feedback" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="secondary-button" id="cancel-dialog">Cancelar</button><button type="submit" class="primary-button">Guardar cita</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
