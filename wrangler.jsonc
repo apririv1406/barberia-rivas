@@ -6,6 +6,7 @@
   "assets": {
     "directory": "./src/BarberiaRivas.Web/wwwroot",
     "binding": "ASSETS",
+    "html_handling": "none",
     "run_worker_first": ["/api/*", "/admin", "/admin/", "/robots.txt", "/sitemap.xml"]
   },
   "d1_databases": [
