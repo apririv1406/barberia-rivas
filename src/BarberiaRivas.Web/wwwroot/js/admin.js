@@ -479,6 +479,7 @@ async function loadServices() {
         option.textContent = service.name + (service.durationMinutes ? " · " + service.durationMinutes + " min" : "");
         adminService.append(option);
     });
+    populateWaitlistServices();
 }
 
 async function loadCalendar() {
@@ -832,6 +833,7 @@ appointmentForm.addEventListener("submit", async function (event) {
         phone: data.get("phone"),
         email: data.get("email"),
         notes: data.get("notes"),
+        internalNotes: data.get("internalNotes"),
         requestedAt: localDateTime(data.get("date"), data.get("time")),
         confirm: data.get("confirm") === "on"
     };
