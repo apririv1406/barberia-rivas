@@ -209,7 +209,15 @@ bookingForm.addEventListener("submit", async function (event) {
     } catch (error) {
         bookingFeedback.textContent = error.message;
         bookingFeedback.classList.add("error");
-        showBookingPopup(error.message);
+        if (error.message.toLowerCase().includes("horario ya no está disponible")) {
+            const availabilityResponse = await fetch("/api/availability?date=" + encodeURIComponent(formData.get("date")) +
+                "&serviceId=" + encodeURIComponent(formData.get("serviceId")));
+            const availability = await availabilityResponse.json();
+            showBookingPopup("NO HAY CITAS DISPONIBLES PARA EL DÍA Y HORA SELECCIONADA. PRÓXIMA CITA LIBRE: " +
+                formatNextAppointment(availability.nextAvailable) + ".");
+        } else {
+            showBookingPopup(error.message);
+        }
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = 'Enviar solicitud <span>↗</span>';
