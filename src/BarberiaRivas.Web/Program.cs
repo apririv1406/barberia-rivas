@@ -316,7 +316,7 @@ app.MapGet("/robots.txt", (HttpContext context, IConfiguration configuration) =>
     if (string.IsNullOrWhiteSpace(baseUrl))
         baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
 
-    var content = $"User-agent: *\\nAllow: /\\nDisallow: /admin\\nDisallow: /api/\\nSitemap: {baseUrl}/sitemap.xml\\n";
+    var content = $"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: {baseUrl}/sitemap.xml\n";
     return Results.Text(content, "text/plain; charset=utf-8");
 });
 
