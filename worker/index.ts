@@ -551,6 +551,14 @@ export default {
           await env.DB.prepare("DELETE FROM waitlist WHERE id = ?").bind(waitlistMatch[1]).run();
           return json({ message: "Registro eliminado." });
         }
+        const reminderMatch = path.match(/^\/api\/admin\/appointments\/([0-9a-f-]{36})\/reminder$/i);
+        if (reminderMatch && method === "POST") {
+          const appointment = await env.DB.prepare("SELECT id FROM appointments WHERE id = ? AND status = 'Confirmada'").bind(reminderMatch[1]).first();
+          if (!appointment) return problem("Cita no encontrada", 404, "Solo puedes registrar recordatorios de citas confirmadas.");
+          await env.DB.prepare("INSERT INTO reminder_log (id, appointment_id, reminder_type, sent_at, channel) VALUES (?, ?, 'manual', ?, 'WhatsApp')")
+            .bind(crypto.randomUUID(), reminderMatch[1], new Date().toISOString()).run();
+          return json({ message: "Recordatorio registrado." }, 201);
+        }
         const resultMatch = path.match(/^\/api\/admin\/appointments\/([0-9a-f-]{36})\/result$/i);
         if (resultMatch && method === "PATCH") {
           const body = await request.json() as Record<string, unknown>;
