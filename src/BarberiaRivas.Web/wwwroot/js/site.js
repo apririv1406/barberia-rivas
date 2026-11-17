@@ -28,6 +28,53 @@ if (menuToggle && mainNav) {
     });
 }
 
+async function loadPublicHours() {
+    const target = document.querySelector("#public-hours");
+    if (!target) return;
+    try {
+        const response = await fetch("/api/hours");
+        if (!response.ok) throw new Error("Horario no disponible");
+        const hours = await response.json();
+        const names = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        const lines = [];
+        names.forEach(function (name, weekday) {
+            const periods = hours.filter(function (item) { return Number(item.weekday) === weekday; })
+                .sort(function (a, b) { return Number(a.period) - Number(b.period); });
+            if (periods.length) {
+                lines.push(name + ": " + periods.map(function (item) {
+                    return item.startTime + "–" + item.endTime;
+                }).join(" · "));
+            }
+        });
+        target.replaceChildren();
+        if (!lines.length) {
+            target.textContent = "Actualmente no hay horario de atención publicado.";
+        } else {
+            lines.forEach(function (line, index) {
+                if (index) target.append(document.createElement("br"));
+                target.append(document.createTextNode(line));
+            });
+        }
+        const schema = document.querySelector('script[type="application/ld+json"]');
+        if (schema) {
+            try {
+                const data = JSON.parse(schema.textContent);
+                data.openingHoursSpecification = hours.map(function (item) {
+                    return {
+                        "@type": "OpeningHoursSpecification",
+                        dayOfWeek: names[item.weekday],
+                        opens: item.startTime,
+                        closes: item.endTime
+                    };
+                });
+                schema.textContent = JSON.stringify(data);
+            } catch (error) { console.warn("No se ha podido actualizar el horario estructurado.", error); }
+        }
+    } catch (error) {
+        target.textContent = "Consulta nuestro horario por WhatsApp.";
+    }
+}
+
 function showBookingPopup(message) {
     const popup = document.querySelector("#site-toast");
     if (!popup) {
@@ -295,3 +342,4 @@ if (bookingForm) {
 }
 
 loadServices();
+loadPublicHours();
