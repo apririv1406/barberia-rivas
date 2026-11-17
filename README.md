@@ -47,7 +47,7 @@ Requisitos: Node.js LTS y una cuenta gratuita de Cloudflare.
    ```bash
    npx wrangler d1 create barberia-rivas
    ```
-   Copia el `database_id` que muestra el comando y sustituye `REEMPLAZAR_CON_ID_DE_D1` en `wrangler.jsonc`.
+   Copia el `database_id` que muestra el comando y sustituye el identificador de ejemplo `00000000-0000-0000-0000-000000000000` en `wrangler.jsonc` por el ID real que te haya devuelto Cloudflare.
 4. Aplica la estructura y los seis servicios iniciales en la base de datos remota:
    ```bash
    npx wrangler d1 migrations apply barberia-rivas --remote
