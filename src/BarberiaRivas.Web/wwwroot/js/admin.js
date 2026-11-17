@@ -855,8 +855,20 @@ async function loadCustomers() {
         items.forEach(function (item) {
             const card = document.createElement("article"); card.className = "customer-card";
             const last = item.lastAppointment ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(item.lastAppointment)) : "Sin citas";
-            card.innerHTML = '<div><strong>' + escapeText(item.name) + '</strong><span>' + escapeText(item.phone) + '</span><small>' + Number(item.appointmentCount) + ' citas · Última visita: ' + last + '</small></div><button class="secondary-button" type="button">Editar</button>';
-            card.querySelector("button").addEventListener("click", function () {
+            card.innerHTML = '<div><strong>' + escapeText(item.name) + '</strong><span>' + escapeText(item.phone) + '</span><small>' + Number(item.appointmentCount) + ' citas · Última visita: ' + last + '</small></div><div class="customer-card-actions"><button class="secondary-button" type="button">Historial</button><button class="secondary-button" type="button">Editar</button></div>';
+            card.querySelectorAll("button")[0].addEventListener("click", async function () {
+                try {
+                    const detail = await api("/api/admin/customers/" + item.id);
+                    const history = document.querySelector("#customer-history");
+                    history.hidden = false;
+                    history.innerHTML = '<h3>Historial de ' + escapeText(detail.customer.name) + '</h3>' +
+                        (detail.appointments.length ? detail.appointments.map(function (appointment) {
+                            const when = new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }).format(new Date(appointment.requestedAt));
+                            return '<article><strong>' + escapeText(appointment.serviceName) + '</strong><span>' + when + ' · ' + escapeText(appointment.status) + (appointment.outcome && appointment.outcome !== "Pendiente" ? ' · ' + escapeText(appointment.outcome) : '') + '</span></article>';
+                        }).join("") : '<p class="empty-state">Este cliente todavía no tiene citas.</p>');
+                } catch (error) { showToast(error.message); }
+            });
+            card.querySelectorAll("button")[1].addEventListener("click", function () {
                 const form = document.querySelector("#customer-form"); form.hidden = false;
                 form.elements.id.value = item.id; form.elements.name.value = item.name; form.elements.phone.value = item.phone;
                 form.elements.email.value = item.email || ""; form.elements.notes.value = item.notes || "";
