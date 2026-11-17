@@ -1,21 +1,25 @@
 # Barbería Rivas
 
-Aplicación web para la presencia online y la futura gestión de reservas de Barbería Rivas, en Puente Genil (Córdoba).
+Aplicación web para Barbería Rivas, en Puente Genil (Córdoba), con web pública y gestión privada de solicitudes de cita.
 
-## Objetivos
+## Funcionalidades
 
-- Web pública responsive con información del negocio y contacto directo.
-- Catálogo de servicios y precios gestionable desde administración.
-- Solicitudes de cita con aprobación manual del barbero.
-- Panel privado para agenda, clientes, servicios, horarios y bloqueos.
-- Backend ASP.NET Core y PostgreSQL.
+- Web pública responsive con información del negocio, servicios y contacto.
+- Solicitud de cita desde la web con aprobación manual.
+- Acceso directo a WhatsApp.
+- Panel privado en `/admin` con autenticación mediante contraseña.
+- Calendario mensual, agenda diaria y resumen de citas.
+- Bandeja de solicitudes pendientes.
+- Acciones para confirmar, rechazar y cancelar citas.
+- Alta manual de citas desde el panel, por ejemplo para las recibidas por teléfono o WhatsApp.
+- Comprobación de solapamientos teniendo en cuenta la duración configurada del servicio.
 
-## Tecnologías previstas
+## Tecnologías
 
 - .NET 10 / ASP.NET Core
 - Entity Framework Core
 - PostgreSQL
-- HTML, CSS y JavaScript para la interfaz pública
+- HTML, CSS y JavaScript
 
 ## Datos del negocio
 
@@ -23,16 +27,31 @@ Aplicación web para la presencia online y la futura gestión de reservas de Bar
 - **Teléfono:** +34 666 23 22 76
 - **Instagram:** https://www.instagram.com/barberia_rivas/
 
+## Configuración
+
+Configura estas variables de entorno en el entorno donde se despliegue la aplicación:
+
+- `ConnectionStrings__DefaultConnection`: cadena de conexión de PostgreSQL.
+- `Admin__Password`: contraseña privada y robusta para acceder al panel.
+
+No guardes la contraseña del panel en el repositorio ni en archivos públicos. Si `Admin__Password` no está configurada, el inicio de sesión permanecerá deshabilitado.
+
 ## Desarrollo local
 
 Requisitos: .NET 10 SDK y PostgreSQL.
 
-1. Configura la cadena de conexión mediante la variable de entorno `ConnectionStrings__DefaultConnection`.
-2. Ejecuta `dotnet restore`.
-3. Ejecuta `dotnet run --project src/BarberiaRivas.Web`.
+En PowerShell, antes de iniciar la aplicación:
 
-La configuración de base de datos y las migraciones se documentarán conforme se complete el modelo de reservas.
+```powershell
+$env:ConnectionStrings__DefaultConnection="Host=localhost;Database=barberia_rivas;Username=postgres;Password=TU_PASSWORD"
+$env:Admin__Password="ELIGE_UNA_PASSWORD_LARGA_Y_UNICA"
+dotnet run --project src/BarberiaRivas.Web
+```
+
+Abre la web pública en la dirección que indique ASP.NET Core y el panel en la ruta `/admin`.
+
+Las migraciones de Entity Framework se aplican al iniciar la aplicación cuando existe una cadena de conexión configurada.
 
 ## Estado
 
-Proyecto inicializado. La primera fase establece la estructura de ASP.NET Core y la web pública. La gestión de citas y el panel de administración se desarrollarán por fases, manteniendo las solicitudes pendientes de aprobación manual.
+La web pública, la recepción de solicitudes y la primera versión del panel privado están implementadas. La aplicación utiliza la hora local de Puente Genil para validar y mostrar las citas.
