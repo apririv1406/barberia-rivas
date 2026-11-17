@@ -26,12 +26,12 @@ CREATE INDEX IF NOT EXISTS idx_appointments_service ON appointments(service_id);
 CREATE INDEX IF NOT EXISTS idx_services_active_order ON services(is_active, display_order);
 
 INSERT OR IGNORE INTO services (id, name, description, price, duration_minutes, is_active, display_order) VALUES
-('11111111-1111-4111-8111-111111111101', 'Afeitado de barba', NULL, NULL, 30, 1, 1),
-('11111111-1111-4111-8111-111111111102', 'Corte de barba', NULL, NULL, 30, 1, 2),
-('11111111-1111-4111-8111-111111111103', 'Corte de pelo', NULL, NULL, 30, 1, 3),
-('11111111-1111-4111-8111-111111111104', 'Corte de pelo y barba', NULL, NULL, 45, 1, 4),
-('11111111-1111-4111-8111-111111111105', 'Cuidado de la barba', NULL, NULL, 30, 1, 5),
-('11111111-1111-4111-8111-111111111106', 'Degradado', NULL, NULL, 30, 1, 6);
+('11111111-1111-4111-8111-111111111101', 'Afeitado de barba', NULL, NULL, NULL, 1, 1),
+('11111111-1111-4111-8111-111111111102', 'Corte de barba', NULL, NULL, NULL, 1, 2),
+('11111111-1111-4111-8111-111111111103', 'Corte de pelo', NULL, NULL, NULL, 1, 3),
+('11111111-1111-4111-8111-111111111104', 'Corte de pelo y barba', NULL, NULL, NULL, 1, 4),
+('11111111-1111-4111-8111-111111111105', 'Cuidado de la barba', NULL, NULL, NULL, 1, 5),
+('11111111-1111-4111-8111-111111111106', 'Degradado', NULL, NULL, NULL, 1, 6);
 
 CREATE TRIGGER IF NOT EXISTS appointments_no_overlap_insert
 BEFORE INSERT ON appointments
