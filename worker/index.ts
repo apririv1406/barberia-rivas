@@ -445,6 +445,14 @@ export default {
           ).bind(name, description, price, duration, isActive, displayOrder, serviceMatch[1]).run();
           return json({ id: serviceMatch[1], message: "Servicio actualizado correctamente." });
         }
+        if (path === "/api/admin/analytics" && method === "GET") {
+          const days = Math.min(365, Math.max(1, Number(url.searchParams.get("days")) || 30));
+          const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+          const totals = await env.DB.prepare("SELECT COUNT(*) AS total, SUM(CASE WHEN outcome = 'Completada' THEN 1 ELSE 0 END) AS completed, SUM(CASE WHEN outcome = 'No presentado' THEN 1 ELSE 0 END) AS noShow, SUM(CASE WHEN status = 'Cancelada' THEN 1 ELSE 0 END) AS cancelled FROM appointments WHERE substr(requested_at, 1, 10) >= ?").bind(from).first<{total:number;completed:number;noShow:number;cancelled:number}>();
+          const services = await env.DB.prepare("SELECT s.name, COUNT(*) AS count FROM appointments a JOIN services s ON s.id = a.service_id WHERE substr(a.requested_at, 1, 10) >= ? GROUP BY s.id, s.name ORDER BY count DESC LIMIT 8").bind(from).all();
+          const statuses = await env.DB.prepare("SELECT status, COUNT(*) AS count FROM appointments WHERE substr(requested_at, 1, 10) >= ? GROUP BY status ORDER BY count DESC").bind(from).all();
+          return json({ days, total: totals?.total || 0, completed: totals?.completed || 0, noShow: totals?.noShow || 0, cancelled: totals?.cancelled || 0, services: services.results, statuses: statuses.results });
+        }
         if (path === "/api/admin/summary" && method === "GET") {
           const today = url.searchParams.get("day") || localToday();
           const rows = await env.DB.prepare("SELECT requested_at AS requestedAt, status FROM appointments WHERE substr(requested_at, 1, 10) = ?").bind(today).all<{ requestedAt: string; status: string }>();
