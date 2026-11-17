@@ -21,19 +21,18 @@ const ACTIVE = ["Pendiente", "Confirmada"];
 const STATUSES = ["Confirmada", "Rechazada", "Cancelada"];
 
 function json(data: unknown, status = 200): Response {
-  return Response.json(data, { status, headers: securityHeaders() });
+  return Response.json(data, { status, headers: { ...securityHeaders(), "Cache-Control": "no-store" } });
 }
-function securityHeaders(): HeadersInit {
+function securityHeaders(): Record<string, string> {
   return {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "DENY",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Cache-Control": "no-store"
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
   };
 }
 function problem(title: string, status: number, detail?: string): Response {
-  return json({ title, status, ...(detail ? { detail } : {}) }, status);
+  return json({ title, message: detail || title, status, ...(detail ? { detail } : {}) }, status);
 }
 function getCookie(request: Request, name: string): string | null {
   const cookie = request.headers.get("Cookie") || "";
@@ -83,7 +82,7 @@ function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get("Origin");
   return !origin || origin === new URL(request.url).origin;
 }
-function localToday(): string {
+function localNow(): string {\n  const parts = new Intl.DateTimeFormat("en-GB", {\n    timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit",\n    hour: "2-digit", minute: "2-digit", hourCycle: "h23"\n  }).formatToParts(new Date());\n  const get = (type: string) => parts.find(part => part.type === type)?.value || "";\n  return get("year") + "-" + get("month") + "-" + get("day") + "T" + get("hour") + ":" + get("minute");\n}\nfunction localToday(): string {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit"
   }).formatToParts(new Date());
@@ -154,7 +153,7 @@ async function createAppointment(env: Env, body: Record<string, unknown>, manual
     .bind(serviceId).first<{ id: string; durationMinutes: number | null }>();
   if (!service) return problem("Servicio no disponible", 400, "El servicio seleccionado ya no está disponible.");
   const duration = service.durationMinutes && service.durationMinutes > 0 ? service.durationMinutes : 30;
-  if (requestedAt <= localToday() + "T" || !withinBusinessHours(requestedAt, duration))
+  if (requestedAt.slice(0, 16) <= localNow() || !withinBusinessHours(requestedAt, duration))
     return problem("Horario no válido", 400, "Selecciona una fecha futura de lunes a viernes, de 10:00 a 14:00 o de 16:00 a 20:00.");
   const status = manual && body.confirm === false ? "Pendiente" : manual ? "Confirmada" : "Pendiente";
   const id = crypto.randomUUID();
