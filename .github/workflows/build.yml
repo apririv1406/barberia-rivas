@@ -13,13 +13,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          dotnet-version: 10.0.x
+          node-version: 22
+          cache: npm
 
-      - name: Restore
-        run: dotnet restore src/BarberiaRivas.Web/BarberiaRivas.Web.csproj
+      - name: Install dependencies
+        run: npm install
 
-      - name: Build
-        run: dotnet build src/BarberiaRivas.Web/BarberiaRivas.Web.csproj --no-restore --configuration Release
+      - name: Check Worker TypeScript
+        run: npm run check
+
+      - name: Validate Wrangler configuration
+        run: npx wrangler deploy --dry-run
