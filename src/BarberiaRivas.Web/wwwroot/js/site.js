@@ -36,6 +36,7 @@ async function loadPublicHours() {
         if (!response.ok) throw new Error("Horario no disponible");
         const hours = await response.json();
         const names = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        const schemaDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const lines = [];
         names.forEach(function (name, weekday) {
             const periods = hours.filter(function (item) { return Number(item.weekday) === weekday; })
@@ -62,7 +63,7 @@ async function loadPublicHours() {
                 data.openingHoursSpecification = hours.map(function (item) {
                     return {
                         "@type": "OpeningHoursSpecification",
-                        dayOfWeek: names[item.weekday],
+                        dayOfWeek: schemaDays[item.weekday],
                         opens: item.startTime,
                         closes: item.endTime
                     };
