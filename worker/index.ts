@@ -542,18 +542,17 @@ export default {
         }
         if (path === "/api/admin/customers" && method === "GET") {
           const q = (url.searchParams.get("q") || "").trim().slice(0, 100);
-          const rows = await env.DB.prepare("SELECT c.id, c.name, c.phone, c.email, c.notes, c.created_at AS createdAt, c.updated_at AS updatedAt, COUNT(a.id) AS appointmentCount, MAX(a.requested_at) AS lastAppointment FROM customers c LEFT JOIN appointments a ON a.customer_id = c.id WHERE (? = '' OR c.name LIKE '%' || ? || '%' OR c.phone LIKE '%' || ? || '%') GROUP BY c.id ORDER BY c.name LIMIT 200").bind(q, q, q).all();
+          const rows = await env.DB.prepare("SELECT c.id, c.name, c.phone, c.notes, c.created_at AS createdAt, c.updated_at AS updatedAt, COUNT(a.id) AS appointmentCount, MAX(a.requested_at) AS lastAppointment FROM customers c LEFT JOIN appointments a ON a.customer_id = c.id WHERE (? = '' OR c.name LIKE '%' || ? || '%' OR c.phone LIKE '%' || ? || '%') GROUP BY c.id ORDER BY c.name LIMIT 200").bind(q, q, q).all();
           return json(rows.results);
         }
         if (path === "/api/admin/customers" && method === "POST") {
           const body = await request.json() as Record<string, unknown>;
           const name = clean(body.name, 100), phone = clean(body.phone, 30);
-          const email = body.email == null || body.email === "" ? null : clean(body.email, 150);
           const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 1000);
-          if (!name || !phone || (body.email && !email) || (body.notes && !notes)) return problem("Datos no válidos", 400, "Indica un nombre y teléfono válidos.");
+          if (!name || !phone || (body.notes && !notes)) return problem("Datos no válidos", 400, "Indica un nombre y teléfono válidos.");
           const now = new Date().toISOString(), id = crypto.randomUUID();
-          await env.DB.prepare("INSERT INTO customers (id, name, phone, email, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(phone) DO UPDATE SET name = excluded.name, email = excluded.email, notes = excluded.notes, updated_at = excluded.updated_at").bind(id, name, phone, email, notes, now, now).run();
-          return json(await env.DB.prepare("SELECT id, name, phone, email, notes FROM customers WHERE phone = ?").bind(phone).first(), 201);
+          await env.DB.prepare("INSERT INTO customers (id, name, phone, email, notes, created_at, updated_at) VALUES (?, ?, ?, NULL, ?, ?, ?) ON CONFLICT(phone) DO UPDATE SET name = excluded.name, notes = excluded.notes, updated_at = excluded.updated_at").bind(id, name, phone, notes, now, now).run();
+          return json(await env.DB.prepare("SELECT id, name, phone, notes FROM customers WHERE phone = ?").bind(phone).first(), 201);
         }
         const customerMatch = path.match(/^\/api\/admin\/customers\/([0-9a-f-]{36})$/i);
         if (customerMatch && method === "GET") {
@@ -564,21 +563,29 @@ export default {
         }
         if (customerMatch && method === "PATCH") {
           const body = await request.json() as Record<string, unknown>;
-          const current = await env.DB.prepare("SELECT id, name, phone, email, notes FROM customers WHERE id = ?").bind(customerMatch[1]).first<{id:string;name:string;phone:string;email:string|null;notes:string|null}>();
+          const current = await env.DB.prepare("SELECT id, name, phone, notes FROM customers WHERE id = ?").bind(customerMatch[1]).first<{id:string;name:string;phone:string;notes:string|null}>();
           if (!current) return problem("Cliente no encontrado", 404);
           const name = body.name === undefined ? current.name : clean(body.name, 100);
           const phone = body.phone === undefined ? current.phone : clean(body.phone, 30);
-          const email = body.email === undefined ? current.email : (body.email === "" || body.email === null ? null : clean(body.email, 150));
           const notes = body.notes === undefined ? current.notes : (body.notes === "" || body.notes === null ? null : clean(body.notes, 1000));
-          if (!name || !phone || (body.email && !email) || (body.notes && !notes)) return problem("Datos no válidos", 400, "Revisa los datos del cliente.");
+          if (!name || !phone || (body.notes && !notes)) return problem("Datos no válidos", 400, "Revisa los datos del cliente.");
           try {
-            await env.DB.prepare("UPDATE customers SET name = ?, phone = ?, email = ?, notes = ?, updated_at = ? WHERE id = ?").bind(name, phone, email, notes, new Date().toISOString(), customerMatch[1]).run();
-            await env.DB.prepare("UPDATE appointments SET customer_name = ?, phone = ?, email = ? WHERE customer_id = ?").bind(name, phone, email, customerMatch[1]).run();
+            await env.DB.prepare("UPDATE customers SET name = ?, phone = ?, notes = ?, updated_at = ? WHERE id = ?").bind(name, phone, notes, new Date().toISOString(), customerMatch[1]).run();
+            await env.DB.prepare("UPDATE appointments SET customer_name = ?, phone = ? WHERE customer_id = ?").bind(name, phone, customerMatch[1]).run();
           } catch (error) {
             if (String(error).includes("UNIQUE")) return problem("Teléfono ya registrado", 409, "Ese teléfono pertenece a otro cliente.");
             throw error;
           }
           return json({ message: "Cliente actualizado." });
+        }
+        if (customerMatch && method === "DELETE") {
+          const customer = await env.DB.prepare("SELECT id FROM customers WHERE id = ?").bind(customerMatch[1]).first<{id:string}>();
+          if (!customer) return problem("Cliente no encontrado", 404);
+          await env.DB.batch([
+            env.DB.prepare("UPDATE appointments SET customer_id = NULL WHERE customer_id = ?").bind(customerMatch[1]),
+            env.DB.prepare("DELETE FROM customers WHERE id = ?").bind(customerMatch[1])
+          ]);
+          return json({ message: "Cliente eliminado. Las citas se han conservado." });
         }
         if (path === "/api/admin/waitlist" && method === "GET") {
           const rows = await env.DB.prepare("SELECT w.id, w.customer_name AS customerName, w.phone, w.service_id AS serviceId, s.name AS serviceName, w.preferred_date AS preferredDate, w.preferred_time AS preferredTime, w.notes, w.status, w.created_at AS createdAt FROM waitlist w LEFT JOIN services s ON s.id = w.service_id WHERE w.status IN ('Pendiente', 'Avisado') ORDER BY w.created_at").all();
