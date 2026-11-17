@@ -233,6 +233,54 @@ export default {
             headers: { ...securityHeaders(), "Content-Type": "application/json", "Set-Cookie": "br_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0" }
           });
         }
+        if (path === "/api/admin/services" && method === "GET") {
+          const rows = await env.DB.prepare(
+            "SELECT id, name, description, price, duration_minutes AS durationMinutes, is_active AS isActive, display_order AS displayOrder FROM services ORDER BY is_active DESC, display_order, name"
+          ).all<ServiceRow>();
+          return json(rows.results);
+        }
+        if (path === "/api/admin/services" && method === "POST") {
+          const body = await request.json() as Record<string, unknown>;
+          const name = clean(body.name, 100);
+          const description = body.description == null || body.description === "" ? null : clean(body.description, 500);
+          const price = body.price == null || body.price === "" ? null : Number(body.price);
+          const duration = body.durationMinutes == null || body.durationMinutes === "" ? null : Number(body.durationMinutes);
+          const displayOrder = body.displayOrder == null || body.displayOrder === "" ? 0 : Number(body.displayOrder);
+          if (!name || (body.description && !description) ||
+              (price !== null && (!Number.isFinite(price) || price < 0 || price > 100000)) ||
+              (duration !== null && (!Number.isInteger(duration) || duration < 5 || duration > 480)) ||
+              !Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 999)
+            return problem("Datos no válidos", 400, "Revisa el nombre, descripción, precio, duración y orden del servicio.");
+          const id = crypto.randomUUID();
+          await env.DB.prepare(
+            "INSERT INTO services (id, name, description, price, duration_minutes, is_active, display_order) VALUES (?, ?, ?, ?, ?, 1, ?)"
+          ).bind(id, name, description, price, duration, displayOrder).run();
+          return json({ id, message: "Servicio creado correctamente." }, 201);
+        }
+        const serviceMatch = path.match(/^\\/api\\/admin\\/services\\/([0-9a-f-]{36})$/i);
+        if (serviceMatch && method === "PATCH") {
+          const body = await request.json() as Record<string, unknown>;
+          const current = await env.DB.prepare(
+            "SELECT id, name, description, price, duration_minutes AS durationMinutes, is_active AS isActive, display_order AS displayOrder FROM services WHERE id = ?"
+          ).bind(serviceMatch[1]).first<ServiceRow>();
+          if (!current) return problem("Servicio no encontrado", 404);
+          const name = body.name === undefined ? current.name : clean(body.name, 100);
+          const description = body.description === undefined ? current.description : (body.description === "" || body.description === null ? null : clean(body.description, 500));
+          const price = body.price === undefined ? current.price : (body.price === "" || body.price === null ? null : Number(body.price));
+          const duration = body.durationMinutes === undefined ? current.durationMinutes : (body.durationMinutes === "" || body.durationMinutes === null ? null : Number(body.durationMinutes));
+          const displayOrder = body.displayOrder === undefined ? current.displayOrder : Number(body.displayOrder);
+          const isActive = body.isActive === undefined ? current.isActive : (body.isActive === true ? 1 : body.isActive === false ? 0 : -1);
+          if (!name || (body.description !== undefined && body.description && !description) ||
+              (price !== null && (!Number.isFinite(price) || price < 0 || price > 100000)) ||
+              (duration !== null && (!Number.isInteger(duration) || duration < 5 || duration > 480)) ||
+              !Number.isInteger(displayOrder) || displayOrder < 0 || displayOrder > 999 ||
+              ![0, 1].includes(isActive))
+            return problem("Datos no válidos", 400, "Revisa los datos del servicio. La duración debe estar entre 5 y 480 minutos.");
+          await env.DB.prepare(
+            "UPDATE services SET name = ?, description = ?, price = ?, duration_minutes = ?, is_active = ?, display_order = ? WHERE id = ?"
+          ).bind(name, description, price, duration, isActive, displayOrder, serviceMatch[1]).run();
+          return json({ id: serviceMatch[1], message: "Servicio actualizado correctamente." });
+        }
         if (path === "/api/admin/summary" && method === "GET") {
           const today = url.searchParams.get("day") || localToday();
           const rows = await env.DB.prepare("SELECT requested_at AS requestedAt, status FROM appointments WHERE substr(requested_at, 1, 10) = ?").bind(today).all<{ requestedAt: string; status: string }>();
