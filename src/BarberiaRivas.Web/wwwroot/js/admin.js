@@ -841,7 +841,7 @@ function openEditDialog(item) {
     adminService.value = item.serviceId;
     appointmentForm.elements.name.value = item.customerName;
     appointmentForm.elements.phone.value = item.phone;
-    appointmentForm.elements.email.value = item.email || "";
+    // El correo no se solicita ni se gestiona desde el panel.
     appointmentForm.elements.notes.value = item.notes || "";
     if (appointmentForm.elements.internalNotes) appointmentForm.elements.internalNotes.value = item.internalNotes || "";
     adminTime.value = item.requestedAt.slice(11, 16);
@@ -862,7 +862,7 @@ appointmentForm.addEventListener("submit", async function (event) {
         serviceId: data.get("serviceId"),
         name: data.get("name"),
         phone: data.get("phone"),
-        email: data.get("email"),
+        email: null,
         notes: data.get("notes"),
         internalNotes: data.get("internalNotes"),
         requestedAt: localDateTime(data.get("date"), data.get("time")),
@@ -893,7 +893,7 @@ async function loadCustomers() {
         items.forEach(function (item) {
             const card = document.createElement("article"); card.className = "customer-card";
             const last = item.lastAppointment ? new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(item.lastAppointment)) : "Sin citas";
-            card.innerHTML = '<div><strong>' + escapeText(item.name) + '</strong><span>' + escapeText(item.phone) + '</span><small>' + Number(item.appointmentCount) + ' citas · Última visita: ' + last + '</small></div><div class="customer-card-actions"><button class="secondary-button" type="button">Historial</button><button class="secondary-button" type="button">Editar</button></div>';
+            card.innerHTML = '<div><strong>' + escapeText(item.name) + '</strong><span>' + escapeText(item.phone) + '</span><small>' + Number(item.appointmentCount) + ' citas · Última visita: ' + last + '</small></div><div class="customer-card-actions"><button class="secondary-button" type="button">Historial</button><button class="secondary-button" type="button">Editar</button><button class="secondary-button customer-delete" type="button">Eliminar</button></div>';
             card.querySelectorAll("button")[0].addEventListener("click", async function () {
                 try {
                     const detail = await api("/api/admin/customers/" + item.id);
@@ -909,9 +909,22 @@ async function loadCustomers() {
             card.querySelectorAll("button")[1].addEventListener("click", function () {
                 const form = document.querySelector("#customer-form"); form.hidden = false;
                 form.elements.id.value = item.id; form.elements.name.value = item.name; form.elements.phone.value = item.phone;
-                form.elements.email.value = item.email || ""; form.elements.notes.value = item.notes || "";
+                form.elements.notes.value = item.notes || "";
                 form.scrollIntoView({ behavior: "smooth", block: "center" });
-            }); list.append(card);
+            });
+            card.querySelectorAll("button")[2].addEventListener("click", async function () {
+                const appointments = Number(item.appointmentCount) || 0;
+                const warning = appointments ? " Este cliente tiene " + appointments + " citas asociadas; se conservarán, pero dejarán de estar vinculadas a su ficha." : "";
+                if (!window.confirm("¿Eliminar a " + item.name + "?" + warning)) return;
+                try {
+                    await api("/api/admin/customers/" + item.id, { method: "DELETE" });
+                    const history = document.querySelector("#customer-history");
+                    history.hidden = true; history.innerHTML = "";
+                    await loadCustomers();
+                    showToast("Cliente eliminado correctamente.");
+                } catch (error) { showToast(error.message); }
+            });
+            list.append(card);
         });
     } catch (error) { showToast(error.message); }
 }
@@ -920,7 +933,7 @@ document.querySelector("#new-customer").addEventListener("click", function () { 
 document.querySelector("#cancel-customer").addEventListener("click", function () { document.querySelector("#customer-form").hidden = true; });
 document.querySelector("#customer-form").addEventListener("submit", async function (event) {
     event.preventDefault(); const form = event.currentTarget, data = new FormData(form), id = data.get("id");
-    const payload = { name: data.get("name"), phone: data.get("phone"), email: data.get("email"), notes: data.get("notes") };
+    const payload = { name: data.get("name"), phone: data.get("phone"), notes: data.get("notes") };
     try { await api(id ? "/api/admin/customers/" + id : "/api/admin/customers", { method: id ? "PATCH" : "POST", body: JSON.stringify(payload) }); form.hidden = true; form.reset(); await loadCustomers(); showToast("Cliente guardado correctamente."); }
     catch (error) { document.querySelector("#customer-feedback").textContent = error.message; }
 });
