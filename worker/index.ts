@@ -335,8 +335,8 @@ export default {
           if (rows.length > 14 || rows.some(row =>
             !Number.isInteger(row.weekday) || Number(row.weekday) < 0 || Number(row.weekday) > 6 ||
             ![1, 2].includes(Number(row.period)) ||
-            typeof row.startTime !== "string" || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(row.startTime) ||
-            typeof row.endTime !== "string" || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(row.endTime) ||
+            typeof row.startTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(row.startTime) ||
+            typeof row.endTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(row.endTime) ||
             row.startTime >= row.endTime))
             return problem("Horario no válido", 400, "Revisa los días y las horas. La hora de fin debe ser posterior a la de inicio.");
           const batch = [
@@ -353,8 +353,8 @@ export default {
           const endAt = typeof body.endAt === "string" ? body.endAt : "";
           const kind = body.kind === "vacaciones" ? "vacaciones" : body.kind === "personal" ? "personal" : "";
           const label = clean(body.label, 120);
-          if (!/^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(startAt) ||
-              !/^\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(endAt) ||
+          if (!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(startAt) ||
+              !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(endAt) ||
               startAt >= endAt || !kind || !label)
             return problem("Datos no válidos", 400, "Indica un periodo correcto y un motivo.");
           const conflict = await env.DB.prepare(`
@@ -369,7 +369,7 @@ export default {
             .bind(id, startAt, endAt, kind, label, new Date().toISOString()).run();
           return json({ id, message: "Periodo bloqueado correctamente." }, 201);
         }
-        const blockMatch = path.match(/^\\/api\\/admin\\/availability\\/blocks\\/([0-9a-f-]{36})$/i);
+        const blockMatch = path.match(/^\/api\/admin\/availability\/blocks\/([0-9a-f-]{36})$/i);
         if (blockMatch && method === "DELETE") {
           const result = await env.DB.prepare("DELETE FROM availability_blocks WHERE id = ?").bind(blockMatch[1]).run();
           if (!result.meta.changes) return problem("Periodo no encontrado", 404);
