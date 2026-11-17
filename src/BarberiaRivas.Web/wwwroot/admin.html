@@ -34,6 +34,7 @@
       <nav class="side-nav">
         <a class="active" href="#agenda" data-view="agenda"><span>▦</span> Agenda</a>
         <a href="#pendientes" data-view="pending"><span>◷</span> Solicitudes pendientes <i id="pending-nav-count">0</i></a>
+        <a href="#servicios-admin" data-view="services"><span>✂</span> Servicios</a>
       </nav>
       <div class="sidebar-bottom">
         <a href="/" target="_blank" rel="noopener">Ver página web ↗</a>
@@ -47,7 +48,8 @@
         <button class="primary-button new-appointment-button" id="new-appointment">+ Nueva cita</button>
       </header>
 
-      <section class="stats-grid" aria-label="Resumen">
+      <div id="agenda-view">
+      <section class="stats-grid agenda-only" aria-label="Resumen">
         <article class="stat-card"><span>Solicitudes pendientes</span><strong id="stat-pending">—</strong><small>Por revisar</small></article>
         <article class="stat-card"><span>Citas de hoy</span><strong id="stat-today">—</strong><small>Solicitadas o confirmadas</small></article>
         <article class="stat-card"><span>Confirmadas hoy</span><strong id="stat-confirmed">—</strong><small>En agenda</small></article>
@@ -79,12 +81,20 @@
         </div>
       </section>
 
-      <section class="panel pending-panel" id="pendientes">
+      <section class="panel pending-panel agenda-only" id="pendientes">
         <div class="panel-heading">
           <div><p class="eyebrow">REQUIEREN TU ATENCIÓN</p><h2>Solicitudes pendientes</h2></div>
           <span class="day-count" id="pending-count-label">0 solicitudes</span>
         </div>
         <div id="pending-list" class="pending-list"><p class="empty-state">No hay solicitudes pendientes.</p></div>
+      </section>
+      </div>
+      <section class="panel services-panel" id="services-view" hidden>
+        <div class="panel-heading services-heading">
+          <div><p class="eyebrow">CATÁLOGO DE LA BARBERÍA</p><h2>Servicios</h2><p class="services-intro">Modifica los servicios que aparecen en la web y en el formulario de reservas.</p></div>
+          <button class="primary-button" id="new-service" type="button">+ Añadir servicio</button>
+        </div>
+        <div class="service-admin-list" id="service-admin-list"><p class="empty-state">Cargando servicios…</p></div>
       </section>
       <footer class="admin-footer">Barbería Rivas · Gestión interna de citas</footer>
     </main>
@@ -105,6 +115,21 @@
       <label class="confirm-choice"><input type="checkbox" name="confirm" checked> Crear como cita confirmada</label>
       <p class="feedback" id="appointment-feedback" role="alert"></p>
       <div class="dialog-actions"><button type="button" class="secondary-button" id="cancel-dialog">Cancelar</button><button type="submit" class="primary-button">Guardar cita</button></div>
+    </form>
+  </dialog>
+  <dialog class="service-dialog" id="service-dialog">
+    <form id="service-form" class="dialog-form">
+      <div class="dialog-heading"><div><p class="eyebrow">CATÁLOGO</p><h2 id="service-dialog-title">Añadir servicio</h2></div><button type="button" class="icon-button" id="close-service-dialog" aria-label="Cerrar">×</button></div>
+      <input type="hidden" name="id">
+      <label>Nombre del servicio<input name="name" maxlength="100" required placeholder="Nombre del servicio"></label>
+      <label>Descripción <span>(opcional)</span><textarea name="description" rows="3" maxlength="500" placeholder="Breve descripción del servicio"></textarea></label>
+      <div class="form-row">
+        <label>Precio (€) <span>(opcional)</span><input name="price" type="number" min="0" max="100000" step="0.01" placeholder="Ej. 15"></label>
+        <label>Duración (minutos) <span>(opcional)</span><input name="durationMinutes" type="number" min="5" max="480" step="5" placeholder="Ej. 30"></label>
+      </div>
+      <label>Orden de aparición<input name="displayOrder" type="number" min="0" max="999" step="1" value="0"></label>
+      <p class="feedback" id="service-feedback" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="secondary-button" id="cancel-service-dialog">Cancelar</button><button type="submit" class="primary-button">Guardar servicio</button></div>
     </form>
   </dialog>
 </body>
