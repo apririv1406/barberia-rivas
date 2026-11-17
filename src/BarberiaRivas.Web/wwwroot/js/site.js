@@ -92,24 +92,43 @@ function configureBookingFields() {
         .toISOString().slice(0, 10);
     bookingDate.min = localToday;
 
-    const slots = [];
-    [[10, 0, 14, 0], [16, 0, 20, 0]].forEach(function (period) {
-        let minutes = period[0] * 60 + period[1];
-        const end = period[2] * 60 + period[3];
-        while (minutes < end) {
-            const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
-            const mins = String(minutes % 60).padStart(2, "0");
-            slots.push(hours + ":" + mins);
-            minutes += 30;
-        }
-    });
+    function updateAvailableTimes() {
+        const selectedDate = bookingDate.value;
+        const current = new Date();
+        const todayKey = new Date(current.getTime() - current.getTimezoneOffset() * 60000)
+            .toISOString().slice(0, 10);
+        const isToday = selectedDate === todayKey;
+        const currentMinutes = current.getHours() * 60 + current.getMinutes();
+        const previousValue = bookingTime.value;
 
-    slots.forEach(function (slot) {
-        const option = document.createElement("option");
-        option.value = slot;
-        option.textContent = slot;
-        bookingTime.append(option);
-    });
+        bookingTime.innerHTML = '<option value="">Selecciona una hora</option>';
+
+        const slots = [];
+        [[10, 0, 14, 0], [16, 0, 20, 0]].forEach(function (period) {
+            let minutes = period[0] * 60 + period[1];
+            const end = period[2] * 60 + period[3];
+            while (minutes < end) {
+                if (!isToday || minutes > currentMinutes) {
+                    const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
+                    const mins = String(minutes % 60).padStart(2, "0");
+                    slots.push(hours + ":" + mins);
+                }
+                minutes += 30;
+            }
+        });
+
+        slots.forEach(function (slot) {
+            const option = document.createElement("option");
+            option.value = slot;
+            option.textContent = slot;
+            bookingTime.append(option);
+        });
+
+        if (slots.includes(previousValue)) bookingTime.value = previousValue;
+    }
+
+    bookingDate.addEventListener("change", updateAvailableTimes);
+    updateAvailableTimes();
 }
 
 function populateBookingServices(services) {
