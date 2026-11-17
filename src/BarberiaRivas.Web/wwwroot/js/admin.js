@@ -628,12 +628,12 @@ function createAppointmentCard(item, compact) {
     const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.requestedAt));
     const actions = [];
     if (item.status === "Pendiente") {
-        actions.push('<button class="action-button accept" data-whatsapp="Confirmada">Confirmar por WhatsApp</button>');
-        actions.push('<button class="action-button reject" data-whatsapp="Rechazada">Rechazar por WhatsApp</button>');
-        actions.push('<button class="action-button" data-whatsapp="Cambiar">Cambiar por WhatsApp</button>');
+        actions.push('<button class="action-button accept" data-whatsapp="Confirmada" title="Abrir WhatsApp para confirmar" aria-label="Confirmar cita por WhatsApp">Confirmar</button>');
+        actions.push('<button class="action-button reject" data-whatsapp="Rechazada" title="Abrir WhatsApp para rechazar" aria-label="Rechazar solicitud por WhatsApp">Rechazar</button>');
+        actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
     } else if (item.status === "Confirmada") {
         actions.push('<button class="action-button" data-whatsapp="Cambiar">Cambiar por WhatsApp</button>');
-        actions.push('<button class="action-button reject" data-whatsapp="Cancelada">Cancelar por WhatsApp</button>');
+        actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
     }
     card.innerHTML =
         '<div class="appointment-time">' + time + '</div>' +
