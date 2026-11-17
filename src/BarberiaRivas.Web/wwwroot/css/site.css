@@ -183,3 +183,5 @@ h2 { font-size: clamp(40px, 5vw, 62px); line-height: 1.06; margin: 18px 0 24px; 
   .booking-notes, .booking-consent, .booking-feedback, .booking-note { grid-column: 1; }
   .booking-submit { width: 100%; justify-content: center; }
 }
+
+.site-toast{position:fixed;z-index:3000;left:50%;bottom:24px;transform:translate(-50%,20px);width:min(calc(100% - 32px),520px);padding:18px 20px;background:#171715;color:#fff;font-size:12px;line-height:1.7;text-align:center;box-shadow:0 14px 40px #0004;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}.site-toast.is-visible{opacity:1;visibility:visible;transform:translate(-50%,0)}
