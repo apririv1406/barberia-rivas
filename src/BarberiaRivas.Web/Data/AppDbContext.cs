@@ -24,6 +24,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(service => service.Price)
                 .HasPrecision(10, 2);
             entity.HasIndex(service => new { service.IsActive, service.DisplayOrder });
+
+            entity.HasData(
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111101"), Name = "Afeitado de barba", IsActive = true, DisplayOrder = 1 },
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111102"), Name = "Corte de barba", IsActive = true, DisplayOrder = 2 },
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111103"), Name = "Corte de pelo", IsActive = true, DisplayOrder = 3 },
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111104"), Name = "Corte de pelo y barba", IsActive = true, DisplayOrder = 4 },
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111105"), Name = "Cuidado de la barba", IsActive = true, DisplayOrder = 5 },
+            new() { Id = Guid.Parse("11111111-1111-4111-8111-111111111106"), Name = "Degradado", IsActive = true, DisplayOrder = 6 });
         });
     }
 }
