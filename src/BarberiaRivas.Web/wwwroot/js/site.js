@@ -21,55 +21,69 @@ mainNav.querySelectorAll("a").forEach(function (link) {
 async function loadServices() {
     try {
         const response = await fetch("/api/services");
-
-        if (!response.ok) {
-            throw new Error("No se ha podido cargar el catálogo.");
-        }
+        if (!response.ok) throw new Error("No se ha podido cargar el catálogo.");
 
         const services = await response.json();
-
         if (!services.length) {
             serviceGrid.innerHTML = '<p class="service-message">Estamos preparando nuestro catálogo. Mientras tanto, puedes consultarnos por WhatsApp.</p>';
             return;
         }
 
         serviceGrid.innerHTML = "";
-
         services.forEach(function (service, index) {
             const card = document.createElement("article");
             card.className = "service-card";
 
+            const top = document.createElement("div");
+            top.className = "service-card-top";
             const number = document.createElement("span");
             number.className = "service-number";
-            number.textContent = String(index + 1).padStart(2, "0");
+            number.textContent = "SERVICIO " + String(index + 1).padStart(2, "0");
+            const tag = document.createElement("span");
+            tag.className = "service-tag";
+            tag.textContent = "BARBERÍA RIVAS";
+            top.append(number, tag);
 
             const title = document.createElement("h3");
             title.textContent = service.name;
 
-            const meta = document.createElement("p");
-            meta.className = "service-meta";
+            const description = document.createElement("p");
+            description.className = "service-description";
+            description.textContent = service.description || "Un servicio pensado para cuidar tu imagen y adaptarse a tu estilo.";
 
-            const details = [];
-            if (service.price !== null) {
-                details.push(new Intl.NumberFormat("es-ES", {
-                    style: "currency",
-                    currency: "EUR"
-                }).format(service.price));
-            }
-            if (service.durationMinutes !== null) {
-                details.push(service.durationMinutes + " min");
-            }
-            meta.textContent = details.length ? details.join(" · ") : "Consulta disponibilidad y precio";
+            const bottom = document.createElement("div");
+            bottom.className = "service-card-bottom";
+            const priceRow = document.createElement("div");
+            priceRow.className = "service-price-row";
+            const priceWrap = document.createElement("div");
+            const priceLabel = document.createElement("span");
+            priceLabel.className = "service-price-label";
+            priceLabel.textContent = service.price !== null ? "Precio" : "Tarifa";
+            const price = document.createElement("strong");
+            price.className = "service-price";
+            price.textContent = service.price !== null
+                ? new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(service.price)
+                : "Consultar";
+            priceWrap.append(priceLabel, price);
 
-            card.append(number, title, meta);
+            const duration = document.createElement("span");
+            duration.className = "service-duration";
+            duration.textContent = service.durationMinutes !== null ? service.durationMinutes + " min" : "Duración a consultar";
+            priceRow.append(priceWrap, duration);
 
-            if (service.description) {
-                const description = document.createElement("p");
-                description.className = "service-meta";
-                description.textContent = service.description;
-                card.append(description);
-            }
+            const choose = document.createElement("button");
+            choose.type = "button";
+            choose.className = "service-book-button";
+            choose.innerHTML = '<span>Reservar este servicio</span><span aria-hidden="true">↗</span>';
+            choose.addEventListener("click", function () {
+                bookingService.value = service.id;
+                bookingService.dispatchEvent(new Event("change", { bubbles: true }));
+                document.querySelector("#reservar").scrollIntoView({ behavior: "smooth", block: "start" });
+                bookingService.focus({ preventScroll: true });
+            });
 
+            bottom.append(priceRow, choose);
+            card.append(top, title, description, bottom);
             serviceGrid.append(card);
         });
     } catch (error) {
