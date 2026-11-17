@@ -204,8 +204,10 @@ admin.MapPost("/logout", async (HttpContext context) =>
     return Results.Ok(new { authenticated = false });
 });
 
-admin.MapGet("/summary", async (AppDbContext db, DateOnly? day) =>
+admin.MapGet("/summary", async (IServiceProvider services, DateOnly? day) =>
 {
+    var db = services.GetService<AppDbContext>();
+    if (db is null) return Results.Problem(title: "Base de datos no configurada", statusCode: 503);
     var today = day ?? DateOnly.FromDateTime(GetBusinessNow());
     var start = today.ToDateTime(TimeOnly.MinValue);
     var end = start.AddDays(1);
@@ -222,8 +224,10 @@ admin.MapGet("/summary", async (AppDbContext db, DateOnly? day) =>
     });
 });
 
-admin.MapGet("/appointments", async (AppDbContext db, DateTime? from, DateTime? to, string? status) =>
+admin.MapGet("/appointments", async (IServiceProvider services, DateTime? from, DateTime? to, string? status) =>
 {
+    var db = services.GetService<AppDbContext>();
+    if (db is null) return Results.Problem(title: "Base de datos no configurada", statusCode: 503);
     var query = db.Appointments.AsNoTracking().Include(item => item.Service).AsQueryable();
     if (from.HasValue) query = query.Where(item => item.RequestedAt >= from.Value);
     if (to.HasValue) query = query.Where(item => item.RequestedAt < to.Value);
@@ -244,8 +248,10 @@ admin.MapGet("/appointments", async (AppDbContext db, DateTime? from, DateTime? 
 });
 
 admin.MapPatch("/appointments/{id:guid}/status", async (
-    Guid id, UpdateAppointmentStatusRequest request, AppDbContext db) =>
+    Guid id, UpdateAppointmentStatusRequest request, IServiceProvider services) =>
 {
+    var db = services.GetService<AppDbContext>();
+    if (db is null) return Results.Problem(title: "Base de datos no configurada", statusCode: 503);
     var allowed = new[] { AppointmentStatus.Confirmed, AppointmentStatus.Rejected, AppointmentStatus.Cancelled };
     if (request.Status is null || !allowed.Contains(request.Status))
         return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -273,8 +279,10 @@ admin.MapPatch("/appointments/{id:guid}/status", async (
     return Results.Ok(new { appointment.Id, appointment.Status });
 });
 
-admin.MapPost("/appointments", async (AdminCreateAppointmentRequest request, AppDbContext db) =>
+admin.MapPost("/appointments", async (AdminCreateAppointmentRequest request, IServiceProvider services) =>
 {
+    var db = services.GetService<AppDbContext>();
+    if (db is null) return Results.Problem(title: "Base de datos no configurada", statusCode: 503);
     var name = request.Name?.Trim();
     var phone = request.Phone?.Trim();
     if (string.IsNullOrWhiteSpace(name) || name.Length > 100 ||
