@@ -117,3 +117,45 @@
     max-height: 620px;
   }
 }
+
+
+/* Controles cómodos para pulsar desde móvil */
+.action-button,.secondary-button,.dialog-actions button,.icon-button,.today-button{min-height:44px}
+.action-button{padding:11px 13px;font-size:11px}
+.availability-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:18px}
+.availability-card{border:1px solid var(--line);padding:22px;background:#fff;min-width:0}
+.availability-card h3{font:600 18px "Playfair Display",serif;margin:0 0 8px}
+.availability-card>p{font-size:11px;line-height:1.6;color:var(--muted);margin:0 0 18px}
+.business-hours-editor{display:grid;gap:10px;margin-bottom:18px}
+.business-hours-day{display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.business-hours-day>strong{font-size:12px}
+.business-hours-periods{display:grid;gap:7px}
+.business-hours-period{display:grid;grid-template-columns:55px minmax(0,1fr) 12px minmax(0,1fr);align-items:center;gap:7px}
+.business-hours-period>span{font-size:10px;color:var(--muted)}
+.business-hours-period input,.block-form input,.block-form select{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);padding:8px;background:#fff;font-size:12px}
+.block-form{display:grid;gap:13px}
+.block-form>label{display:grid;gap:7px;font-size:11px;font-weight:700}
+.block-form .form-row{grid-template-columns:1fr 1fr}
+.availability-block-list{display:grid;gap:8px;margin-top:20px}
+.availability-block-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:12px 0}
+.availability-block-item>div{display:grid;gap:5px;min-width:0}
+.availability-block-item strong{font-size:12px;overflow-wrap:anywhere}
+.availability-block-item span{font-size:10px;color:var(--muted);line-height:1.5}
+.availability-block-item button{flex:0 0 auto}
+#save-business-hours{min-height:46px}
+@media(max-width:900px){.availability-layout{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .action-button{flex:1 1 145px;min-height:48px;padding:12px 10px;font-size:11px}
+  .appointment-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .appointment-card{grid-template-columns:52px minmax(0,1fr)}
+  .pending-list .appointment-card{grid-template-columns:70px minmax(0,1fr)}
+  .appointment-actions .action-button{width:100%;min-width:0}
+  .dialog-actions{display:grid;grid-template-columns:1fr 1fr}
+  .dialog-actions button{min-height:48px;font-size:12px}
+  .dialog-form .primary-button{min-height:48px;font-size:12px}
+  .availability-card{padding:16px}
+  .business-hours-day{grid-template-columns:1fr;gap:8px}
+  .business-hours-period{grid-template-columns:48px minmax(0,1fr) 8px minmax(0,1fr);gap:5px}
+  .availability-block-item{align-items:flex-start}
+  .availability-block-item button{min-height:44px;padding:10px}
+}
