@@ -38,6 +38,7 @@
         <a class="active" href="#agenda" data-view="agenda">Agenda</a>
         <a href="#pendientes" data-view="pending">Solicitudes pendientes <i id="pending-nav-count">0</i></a>
         <a href="#servicios-admin" data-view="services">Servicios</a>
+        <a href="#disponibilidad" data-view="availability">Horarios y cierres</a>
       </nav>
       <div class="sidebar-bottom">
         <a href="/" target="_blank" rel="noopener">Ver página web ↗</a>
@@ -108,6 +109,43 @@
           <button class="primary-button" id="new-service" type="button">+ Añadir servicio</button>
         </div>
         <div class="service-admin-list" id="service-admin-list"><p class="empty-state">Cargando servicios…</p></div>
+      </section>
+      <section class="panel availability-panel" id="availability-view" hidden>
+        <div class="panel-heading">
+          <div><p class="eyebrow">ORGANIZACIÓN DE LA AGENDA</p><h2>Horarios y cierres</h2><p class="services-intro">Configura cuándo se puede reservar y bloquea los días o ratos en los que no se atenderá.</p></div>
+        </div>
+        <div class="availability-layout">
+          <section class="availability-card">
+            <h3>Horario habitual</h3>
+            <p>Los cambios se aplican también al calendario de reservas de la web.</p>
+            <div id="business-hours-editor" class="business-hours-editor"><p class="empty-state">Cargando horario…</p></div>
+            <button class="primary-button" type="button" id="save-business-hours">Guardar horario</button>
+          </section>
+          <section class="availability-card">
+            <h3>Vacaciones y reservas personales</h3>
+            <p>Las vacaciones cierran días completos. Las reservas personales bloquean una franja concreta para uso privado.</p>
+            <form id="block-form" class="block-form">
+              <label>Tipo de bloqueo
+                <select name="kind" id="block-kind">
+                  <option value="vacaciones">Vacaciones / cierre completo</option>
+                  <option value="personal">Reserva personal</option>
+                </select>
+              </label>
+              <div class="form-row">
+                <label>Desde<input type="date" name="startDate" id="block-start-date" required></label>
+                <label>Hasta<input type="date" name="endDate" id="block-end-date" required></label>
+              </div>
+              <div class="form-row personal-time-fields" id="personal-time-fields" hidden>
+                <label>Desde las<input type="time" name="startTime" id="block-start-time" value="10:00"></label>
+                <label>Hasta las<input type="time" name="endTime" id="block-end-time" value="11:00"></label>
+              </div>
+              <label>Motivo o descripción<input name="label" maxlength="120" required placeholder="Ej. Vacaciones, asunto personal…"></label>
+              <button class="primary-button" type="submit">Guardar bloqueo</button>
+              <p class="feedback" id="block-feedback" role="alert"></p>
+            </form>
+            <div class="availability-block-list" id="availability-block-list"><p class="empty-state">Cargando periodos…</p></div>
+          </section>
+        </div>
       </section>
       <div class="admin-toast" id="admin-toast" role="status" aria-live="polite"></div>
   <footer class="admin-footer">Barbería Rivas · Gestión interna de citas</footer>
