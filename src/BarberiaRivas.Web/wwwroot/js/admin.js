@@ -21,6 +21,7 @@ const agendaView = document.querySelector("#agenda-view");
 const servicesView = document.querySelector("#services-view");
 
 let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let calendarView = "week";
 let selectedDate = dateKey(new Date());
 let monthAppointments = [];
 let pendingAppointments = [];
@@ -101,17 +102,46 @@ document.querySelector("#logout-button").addEventListener("click", async functio
 });
 
 document.querySelector("#prev-month").addEventListener("click", function () {
-    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
-    loadMonth();
+    if (calendarView === "week") {
+        const date = dateFromKey(selectedDate);
+        date.setDate(date.getDate() - 7);
+        selectedDate = dateKey(date);
+    } else {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+    }
+    loadCalendar();
 });
 document.querySelector("#next-month").addEventListener("click", function () {
-    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
-    loadMonth();
+    if (calendarView === "week") {
+        const date = dateFromKey(selectedDate);
+        date.setDate(date.getDate() + 7);
+        selectedDate = dateKey(date);
+    } else {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+    }
+    loadCalendar();
 });
 document.querySelector("#go-today").addEventListener("click", function () {
-    visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     selectedDate = dateKey(new Date());
-    loadMonth();
+    visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    loadCalendar();
+});
+document.querySelector("#view-week").addEventListener("click", function () {
+    calendarView = "week";
+    document.querySelector("#view-week").classList.add("active");
+    document.querySelector("#view-week").setAttribute("aria-pressed", "true");
+    document.querySelector("#view-month").classList.remove("active");
+    document.querySelector("#view-month").setAttribute("aria-pressed", "false");
+    loadCalendar();
+});
+document.querySelector("#view-month").addEventListener("click", function () {
+    calendarView = "month";
+    visibleMonth = new Date(dateFromKey(selectedDate).getFullYear(), dateFromKey(selectedDate).getMonth(), 1);
+    document.querySelector("#view-month").classList.add("active");
+    document.querySelector("#view-month").setAttribute("aria-pressed", "true");
+    document.querySelector("#view-week").classList.remove("active");
+    document.querySelector("#view-week").setAttribute("aria-pressed", "false");
+    loadCalendar();
 });
 document.querySelector("#new-appointment").addEventListener("click", openDialog);
 document.querySelector("#new-service").addEventListener("click", function () { openServiceDialog(null); });
@@ -226,7 +256,7 @@ serviceForm.addEventListener("submit", async function (event) {
 async function refreshAll() {
     try {
         await loadServices();
-        await Promise.all([loadMonth(), loadPending(), loadSummary()]);
+        await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
     } catch (error) {
         if (error.message) console.error(error);
     }
@@ -245,6 +275,11 @@ async function loadServices() {
     });
 }
 
+async function loadCalendar() {
+    if (calendarView === "week") return loadWeek();
+    return loadMonth();
+}
+
 async function loadMonth() {
     const year = visibleMonth.getFullYear();
     const month = visibleMonth.getMonth();
@@ -255,8 +290,67 @@ async function loadMonth() {
     monthAppointments = await api(url);
     monthLabel.textContent = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(visibleMonth);
     monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+    document.querySelector("#month-calendar").hidden = false;
+    document.querySelector("#month-day-panel").hidden = false;
+    document.querySelector("#week-calendar").hidden = true;
     renderCalendar();
     renderDay();
+}
+
+async function loadWeek() {
+    const anchor = dateFromKey(selectedDate);
+    const monday = new Date(anchor);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const fridayAfter = new Date(monday);
+    fridayAfter.setDate(fridayAfter.getDate() + 5);
+    const fromKey = dateKey(monday);
+    const toKey = dateKey(fridayAfter);
+    const url = "/api/admin/appointments?from=" + encodeURIComponent(localDateTime(fromKey, "00:00")) +
+        "&to=" + encodeURIComponent(localDateTime(toKey, "00:00"));
+    monthAppointments = await api(url);
+    const friday = new Date(monday);
+    friday.setDate(friday.getDate() + 4);
+    const formatter = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+    monthLabel.textContent = formatter.format(monday) + " – " + formatter.format(friday) +
+        " " + friday.getFullYear();
+    monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+    document.querySelector("#month-calendar").hidden = true;
+    document.querySelector("#month-day-panel").hidden = true;
+    document.querySelector("#week-calendar").hidden = false;
+    renderWeek(monday);
+}
+
+function renderWeek(monday) {
+    const container = document.querySelector("#week-calendar");
+    container.innerHTML = "";
+    const today = dateKey(new Date());
+    const weekdays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+    for (let index = 0; index < 5; index++) {
+        const date = new Date(monday);
+        date.setDate(date.getDate() + index);
+        const key = dateKey(date);
+        const items = monthAppointments.filter(function (item) {
+            return item.requestedAt.slice(0, 10) === key &&
+                item.status !== "Rechazada" && item.status !== "Cancelada";
+        }).sort(function (a, b) { return a.requestedAt.localeCompare(b.requestedAt); });
+        const column = document.createElement("section");
+        column.className = "week-day" + (key === today ? " is-today" : "");
+        const heading = document.createElement("header");
+        heading.className = "week-day-heading";
+        heading.innerHTML = "<div><strong>" + weekdays[index] + "</strong><span>" +
+            new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" }).format(date) +
+            "</span></div><small>" + items.length + (items.length === 1 ? " cita" : " citas") + "</small>";
+        column.append(heading);
+        const list = document.createElement("div");
+        list.className = "week-day-appointments";
+        if (!items.length) {
+            list.innerHTML = '<p class="week-empty">Sin citas</p>';
+        } else {
+            items.forEach(function (item) { list.append(createAppointmentCard(item, true)); });
+        }
+        column.append(list);
+        container.append(column);
+    }
 }
 
 function renderCalendar() {
@@ -401,7 +495,7 @@ async function updateStatus(id, status) {
         await api("/api/admin/appointments/" + id + "/status", {
             method: "PATCH", body: JSON.stringify({ status: status })
         });
-        await Promise.all([loadMonth(), loadPending(), loadSummary()]);
+        await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
     } catch (error) {
         window.alert(error.message);
     }
@@ -457,7 +551,7 @@ appointmentForm.addEventListener("submit", async function (event) {
         closeDialog();
         selectedDate = data.get("date");
         visibleMonth = new Date(dateFromKey(selectedDate).getFullYear(), dateFromKey(selectedDate).getMonth(), 1);
-        await Promise.all([loadMonth(), loadPending(), loadSummary()]);
+        await Promise.all([loadCalendar(), loadPending(), loadSummary()]);
     } catch (error) {
         appointmentFeedback.textContent = error.message;
     } finally {
