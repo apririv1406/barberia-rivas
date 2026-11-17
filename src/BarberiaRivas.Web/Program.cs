@@ -15,6 +15,13 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+if (!string.IsNullOrWhiteSpace(connectionString))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler();
