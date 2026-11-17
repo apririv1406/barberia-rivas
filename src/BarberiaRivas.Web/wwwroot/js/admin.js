@@ -127,7 +127,14 @@ document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
         servicesView.hidden = view !== "services";
         document.querySelector("#new-appointment").hidden = view === "services";
         document.querySelector(".topbar h1").textContent = view === "services" ? "Servicios" : "Agenda";
-        if (view === "services") loadAdminServices();
+        if (view === "services") {
+            loadAdminServices();
+            servicesView.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (view === "pending") {
+            document.querySelector("#pendientes").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+            agendaView.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
     });
 });
 document.querySelector("#close-dialog").addEventListener("click", closeDialog);
