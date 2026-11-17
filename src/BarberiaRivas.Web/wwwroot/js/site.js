@@ -86,49 +86,75 @@ const bookingDate = document.querySelector("#booking-date");
 const bookingTime = document.querySelector("#booking-time");
 const bookingFeedback = document.querySelector("#booking-feedback");
 
-function configureBookingFields() {
+
+function showBookingPopup(message) {
+    const popup = document.querySelector("#site-toast");
+    popup.textContent = message;
+    popup.classList.add("is-visible");
+    clearTimeout(showBookingPopup.timer);
+    showBookingPopup.timer = setTimeout(function () {
+        popup.classList.remove("is-visible");
+    }, 6500);
+}
+
+function formatNextAppointment(value) {
+    if (!value) return "No hay una fecha disponible en los próximos 60 días";
+    return new Intl.DateTimeFormat("es-ES", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
+    }).format(new Date(value));
+}
+
+let availabilityRequest = 0;
+async function configureBookingFields() {
     const today = new Date();
-    const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-        .toISOString().slice(0, 10);
+    const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     bookingDate.min = localToday;
 
-    function updateAvailableTimes() {
+    async function updateAvailableTimes() {
+        const requestId = ++availabilityRequest;
         const selectedDate = bookingDate.value;
-        const current = new Date();
-        const todayKey = new Date(current.getTime() - current.getTimezoneOffset() * 60000)
-            .toISOString().slice(0, 10);
-        const isToday = selectedDate === todayKey;
-        const currentMinutes = current.getHours() * 60 + current.getMinutes();
-        const previousValue = bookingTime.value;
-
+        const serviceId = bookingService.value;
         bookingTime.innerHTML = '<option value="">Selecciona una hora</option>';
+        bookingTime.disabled = true;
 
-        const slots = [];
-        [[10, 0, 14, 0], [16, 0, 20, 0]].forEach(function (period) {
-            let minutes = period[0] * 60 + period[1];
-            const end = period[2] * 60 + period[3];
-            while (minutes < end) {
-                if (!isToday || minutes > currentMinutes) {
-                    const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
-                    const mins = String(minutes % 60).padStart(2, "0");
-                    slots.push(hours + ":" + mins);
-                }
-                minutes += 30;
+        const submitButton = bookingForm.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+        if (!selectedDate || !serviceId) {
+            submitButton.disabled = false;
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/availability?date=" + encodeURIComponent(selectedDate) +
+                "&serviceId=" + encodeURIComponent(serviceId));
+            const result = await response.json();
+            if (requestId !== availabilityRequest) return;
+            if (!response.ok) throw new Error(result.message || "No se ha podido consultar la disponibilidad.");
+
+            result.availableTimes.forEach(function (slot) {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.textContent = slot;
+                bookingTime.append(option);
+            });
+
+            bookingTime.disabled = result.availableTimes.length === 0;
+            submitButton.disabled = result.availableTimes.length === 0;
+            if (!result.availableTimes.length) {
+                showBookingPopup("NO HAY CITAS DISPONIBLES PARA EL DÍA Y HORA SELECCIONADA. PRÓXIMA CITA LIBRE: " +
+                    formatNextAppointment(result.nextAvailable) + ".");
             }
-        });
-
-        slots.forEach(function (slot) {
-            const option = document.createElement("option");
-            option.value = slot;
-            option.textContent = slot;
-            bookingTime.append(option);
-        });
-
-        if (slots.includes(previousValue)) bookingTime.value = previousValue;
+        } catch (error) {
+            if (requestId !== availabilityRequest) return;
+            showBookingPopup(error.message);
+            bookingTime.disabled = true;
+            submitButton.disabled = true;
+        }
     }
 
     bookingDate.addEventListener("change", updateAvailableTimes);
-    updateAvailableTimes();
+    bookingService.addEventListener("change", updateAvailableTimes);
+    await updateAvailableTimes();
 }
 
 function populateBookingServices(services) {
@@ -183,6 +209,7 @@ bookingForm.addEventListener("submit", async function (event) {
     } catch (error) {
         bookingFeedback.textContent = error.message;
         bookingFeedback.classList.add("error");
+        showBookingPopup(error.message);
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = 'Enviar solicitud <span>↗</span>';
