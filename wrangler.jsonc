@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "barberia-rivas",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "354d6b7b-d65a-47dc-84c8-51a3506100ea",
       "migrations_dir": "migrations"
     }
   ],
