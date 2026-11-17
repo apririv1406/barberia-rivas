@@ -4,6 +4,8 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   SESSION_SECRET?: string;
   SITE_URL?: string;
+  INSTAGRAM_ACCESS_TOKEN?: string;
+  INSTAGRAM_API_VERSION?: string;
 }
 
 type ServiceRow = {
@@ -166,6 +168,60 @@ async function getAppointment(env: Env, id: string): Promise<AppointmentRow | nu
   `).bind(id).first<AppointmentRow>();
 }
 
+
+async function instagramFeed(env: Env, request: Request): Promise<Response> {
+  if (!env.INSTAGRAM_ACCESS_TOKEN) return json({ configured: false, posts: [] });
+
+  const cacheKey = new Request(new URL("/api/instagram-feed", request.url).toString(), { method: "GET" });
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const version = (env.INSTAGRAM_API_VERSION || "v27.0").replace(/^v?/, "v");
+  const endpoint = new URL("https://graph.instagram.com/" + version + "/me/media");
+  endpoint.searchParams.set("fields", "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url");
+  endpoint.searchParams.set("limit", "9");
+  endpoint.searchParams.set("access_token", env.INSTAGRAM_ACCESS_TOKEN);
+
+  try {
+    const upstream = await fetch(endpoint.toString(), { headers: { "Accept": "application/json" } });
+    const payload = await upstream.json() as {
+      data?: Array<{ id?: string; caption?: string; media_type?: string; media_url?: string; permalink?: string; timestamp?: string; thumbnail_url?: string }>;
+      error?: { message?: string };
+    };
+    if (!upstream.ok || !Array.isArray(payload.data)) {
+      console.error("Instagram API error:", payload.error?.message || upstream.status);
+      return json({ configured: true, posts: [], message: "Instagram no está disponible temporalmente." }, 502);
+    }
+
+    const posts = payload.data
+      .filter(post => typeof post.permalink === "string" && (typeof post.media_url === "string" || typeof post.thumbnail_url === "string"))
+      .slice(0, 9)
+      .map(post => ({
+        id: post.id || "",
+        caption: post.caption || "",
+        mediaType: post.media_type || "IMAGE",
+        mediaUrl: post.media_url || null,
+        thumbnailUrl: post.thumbnail_url || null,
+        permalink: post.permalink || "",
+        timestamp: post.timestamp || ""
+      }));
+
+    const response = new Response(JSON.stringify({ configured: true, posts }), {
+      headers: {
+        ...securityHeaders(),
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=600"
+      }
+    });
+    await cache.put(cacheKey, response.clone());
+    return response;
+  } catch (error) {
+    console.error("No se ha podido consultar Instagram:", error);
+    return json({ configured: true, posts: [], message: "No se ha podido conectar con Instagram." }, 502);
+  }
+}
+
 async function availability(env: Env, date: string, serviceId: string): Promise<Response> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T12:00:00Z")))
     return problem("Fecha no válida", 400, "Selecciona una fecha válida.");
@@ -307,6 +363,7 @@ export default {
         return await availability(env, date, serviceId);
       }
       if (path === "/api/hours" && method === "GET") return json(await getBusinessHours(env));
+      if (path === "/api/instagram-feed" && method === "GET") return await instagramFeed(env, request);
       if (path === "/api/services" && method === "GET") return json(await listServices(env));
       if (path === "/api/appointments" && method === "POST") {
         if (!isSameOrigin(request)) return problem("Origen no permitido", 403);
