@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS business_hours (
-  weekday INTEGER NOT NULL CHECK(weekday BETWEEN 1 AND 5),
+  weekday INTEGER NOT NULL CHECK(weekday BETWEEN 0 AND 6),
   period INTEGER NOT NULL CHECK(period IN (1, 2)),
   start_time TEXT NOT NULL,
   end_time TEXT NOT NULL,
