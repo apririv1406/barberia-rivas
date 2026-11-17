@@ -37,7 +37,7 @@
       <nav class="side-nav">
         <a class="active" href="#agenda" data-view="agenda">Agenda</a>
         <a href="#pendientes" data-view="pending">Solicitudes pendientes <i id="pending-nav-count">0</i></a>
-        <a href="#servicios-admin" data-view="services">Servicios</a>
+        <a href="#servicios-admin" data-view="services">Servicios</a><a href="#clientes" data-view="customers">Clientes</a><a href="#lista-espera" data-view="waitlist">Lista de espera</a>
         <a href="#disponibilidad" data-view="availability">Horarios y cierres</a>
       </nav>
       <div class="sidebar-bottom">
@@ -110,6 +110,24 @@
         </div>
         <div class="service-admin-list" id="service-admin-list"><p class="empty-state">Cargando servicios…</p></div>
       </section>
+      <section class="panel customers-panel" id="customers-view" hidden>
+        <div class="panel-heading"><div><p class="eyebrow">RELACIÓN CON CLIENTES</p><h2>Clientes</h2><p class="services-intro">Consulta el historial y conserva los datos y preferencias de cada cliente.</p></div></div>
+        <div class="customer-tools"><input id="customer-search" type="search" placeholder="Buscar por nombre o teléfono"><button class="primary-button" id="new-customer" type="button">+ Añadir cliente</button></div>
+        <form id="customer-form" class="customer-form" hidden><input type="hidden" name="id">
+          <div class="form-row"><label>Nombre<input name="name" maxlength="100" required></label><label>Teléfono<input name="phone" type="tel" maxlength="30" required></label></div>
+          <div class="form-row"><label>Correo electrónico<input name="email" type="email" maxlength="150"></label><label>Observaciones internas<textarea name="notes" rows="2" maxlength="1000"></textarea></label></div>
+          <div class="dialog-actions"><button class="secondary-button" id="cancel-customer" type="button">Cancelar</button><button class="primary-button" type="submit">Guardar cliente</button></div><p class="feedback" id="customer-feedback" role="alert"></p>
+        </form><div id="customer-list" class="customer-list"><p class="empty-state">Cargando clientes…</p></div>
+      </section>
+      <section class="panel waitlist-panel" id="waitlist-view" hidden>
+        <div class="panel-heading"><div><p class="eyebrow">HUECOS DISPONIBLES</p><h2>Lista de espera</h2><p class="services-intro">Guarda a las personas interesadas en conseguir una cita.</p></div></div>
+        <form id="waitlist-form" class="waitlist-form">
+          <div class="form-row"><label>Nombre<input name="name" maxlength="100" required></label><label>Teléfono<input name="phone" type="tel" maxlength="30" required></label></div>
+          <div class="form-row"><label>Servicio<select name="serviceId" id="waitlist-service"><option value="">Cualquier servicio</option></select></label><label>Fecha preferida<input name="preferredDate" type="date"></label></div>
+          <div class="form-row"><label>Preferencia horaria<select name="preferredTime"><option value="Indiferente">Indiferente</option><option value="Mañana">Mañana</option><option value="Tarde">Tarde</option></select></label><label>Observaciones<input name="notes" maxlength="500"></label></div>
+          <button class="primary-button" type="submit">Añadir a lista de espera</button><p class="feedback" id="waitlist-feedback" role="alert"></p>
+        </form><div id="waitlist-list" class="waitlist-list"><p class="empty-state">Cargando lista de espera…</p></div>
+      </section>
       <section class="panel availability-panel" id="availability-view" hidden>
         <div class="panel-heading">
           <div><p class="eyebrow">ORGANIZACIÓN DE LA AGENDA</p><h2>Horarios y cierres</h2><p class="services-intro">Configura cuándo se puede reservar y bloquea los días o ratos en los que no se atenderá.</p></div>
@@ -153,7 +171,7 @@
   </div>
 
   <dialog class="appointment-dialog" id="appointment-dialog">
-    <form id="appointment-form" class="dialog-form">
+    <form id="appointment-form" class="dialog-form"><input type="hidden" name="appointmentId">
       <div class="dialog-heading"><div><p class="eyebrow">AGENDA</p><h2>Nueva cita</h2></div><button type="button" class="icon-button" id="close-dialog" aria-label="Cerrar">×</button></div>
       <label>Servicio<select name="serviceId" id="admin-service" required><option value="">Selecciona un servicio</option></select></label>
       <div class="form-row">
