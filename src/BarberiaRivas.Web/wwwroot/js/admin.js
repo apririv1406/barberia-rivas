@@ -148,9 +148,28 @@ document.querySelector("#new-service").addEventListener("click", function () { o
 document.querySelector("#close-service-dialog").addEventListener("click", closeServiceDialog);
 document.querySelector("#cancel-service-dialog").addEventListener("click", closeServiceDialog);
 serviceDialog.addEventListener("click", function (event) { if (event.target === serviceDialog) closeServiceDialog(); });
+
+function closeMobileMenu() {
+    document.querySelector("#admin-sidebar").classList.remove("is-open");
+    adminApp.classList.remove("menu-open");
+    document.querySelector("#mobile-menu-toggle").setAttribute("aria-expanded", "false");
+}
+document.querySelector("#mobile-menu-toggle").addEventListener("click", function () {
+    const sidebar = document.querySelector("#admin-sidebar");
+    const opening = !sidebar.classList.contains("is-open");
+    sidebar.classList.toggle("is-open", opening);
+    adminApp.classList.toggle("menu-open", opening);
+    this.setAttribute("aria-expanded", String(opening));
+});
+document.querySelector("#sidebar-close").addEventListener("click", closeMobileMenu);
+adminApp.addEventListener("click", function (event) {
+    if (adminApp.classList.contains("menu-open") && event.target === adminApp) closeMobileMenu();
+});
+
 document.querySelectorAll(".side-nav [data-view]").forEach(function (link) {
     link.addEventListener("click", function (event) {
         event.preventDefault();
+        closeMobileMenu();
         const view = link.dataset.view;
         document.querySelectorAll(".side-nav [data-view]").forEach(function (item) { item.classList.toggle("active", item === link); });
         agendaView.hidden = view === "services";
@@ -290,6 +309,8 @@ async function loadMonth() {
     monthAppointments = await api(url);
     monthLabel.textContent = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(visibleMonth);
     monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+    document.querySelector(".workspace").classList.remove("week-mode");
+    adminApp.classList.remove("week-view-active");
     document.querySelector("#month-calendar").hidden = false;
     document.querySelector("#month-day-panel").hidden = false;
     document.querySelector("#week-calendar").hidden = true;
@@ -314,6 +335,8 @@ async function loadWeek() {
     monthLabel.textContent = formatter.format(monday) + " – " + formatter.format(friday) +
         " " + friday.getFullYear();
     monthLabel.textContent = monthLabel.textContent.charAt(0).toUpperCase() + monthLabel.textContent.slice(1);
+    document.querySelector(".workspace").classList.add("week-mode");
+    adminApp.classList.add("week-view-active");
     document.querySelector("#month-calendar").hidden = true;
     document.querySelector("#month-day-panel").hidden = true;
     document.querySelector("#week-calendar").hidden = false;
