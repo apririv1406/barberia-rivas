@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "barberia-rivas",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-17",
+  "assets": {
+    "directory": "./src/BarberiaRivas.Web/wwwroot",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/admin", "/admin/", "/robots.txt", "/sitemap.xml"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "barberia-rivas",
+      "database_id": "REEMPLAZAR_CON_ID_DE_D1",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "SITE_URL": ""
+  }
+}
