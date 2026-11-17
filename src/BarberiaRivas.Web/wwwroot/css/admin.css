@@ -71,3 +71,49 @@
 
 @media(max-width:700px){.mobile-menu-toggle{width:42px;height:40px;padding:0;font-size:21px;line-height:1}}
 .admin-toast{position:fixed;z-index:2000;left:50%;bottom:24px;transform:translate(-50%,20px);width:min(calc(100% - 32px),460px);padding:15px 18px;background:#171715;color:#fff;font-size:12px;line-height:1.6;text-align:center;box-shadow:0 12px 35px #0003;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}.admin-toast.is-visible{opacity:1;visibility:visible;transform:translate(-50%,0)}
+
+
+/* La agenda semanal mantiene cada día dentro del alto visible y desplaza sus citas internamente. */
+.workspace.week-mode .week-calendar {
+  align-items: stretch;
+  min-height: 0;
+}
+.workspace.week-mode .week-day {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 320px);
+  min-height: 280px;
+  max-height: 720px;
+  overflow: hidden;
+}
+.workspace.week-mode .week-day-heading {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.workspace.week-mode .week-day-appointments {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c8c5bd transparent;
+}
+.workspace.week-mode .week-day-appointments::-webkit-scrollbar {
+  width: 6px;
+}
+.workspace.week-mode .week-day-appointments::-webkit-scrollbar-thumb {
+  background: #c8c5bd;
+  border-radius: 8px;
+}
+@media (max-width: 700px) {
+  .workspace.week-mode .week-calendar {
+    align-items: stretch;
+    min-height: 0;
+  }
+  .workspace.week-mode .week-day {
+    height: calc(100dvh - 300px);
+    min-height: 260px;
+    max-height: 620px;
+  }
+}
