@@ -675,7 +675,7 @@ function createAppointmentCard(item, compact) {
         '<div class="appointment-time">' + time + '</div>' +
         '<div class="appointment-info"><strong>' + escapeText(item.customerName) + '</strong>' +
         '<span>' + escapeText(item.serviceName) + '</span>' +
-        '<span class="status-pill ' + (item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(outcome) + '</span></div>' +
+        '<span class="status-pill ' + (item.outcome === "Completada" ? "status-completed" : item.outcome === "No presentado" ? "status-no-show" : item.status === "Pendiente" ? "status-pending" : "status-confirmed") + '">' + escapeText(outcome) + '</span></div>' +
         '<span class="appointment-open-hint" aria-hidden="true">›</span>';
     card.addEventListener("click", function () { openAppointmentDetails(item); });
     return card;
