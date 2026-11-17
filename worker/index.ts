@@ -556,7 +556,7 @@ export default {
         }
         const customerMatch = path.match(/^\/api\/admin\/customers\/([0-9a-f-]{36})$/i);
         if (customerMatch && method === "GET") {
-          const customer = await env.DB.prepare("SELECT id, name, phone, email, notes, created_at AS createdAt, updated_at AS updatedAt FROM customers WHERE id = ?").bind(customerMatch[1]).first();
+          const customer = await env.DB.prepare("SELECT id, name, phone, notes, created_at AS createdAt, updated_at AS updatedAt FROM customers WHERE id = ?").bind(customerMatch[1]).first();
           if (!customer) return problem("Cliente no encontrado", 404);
           const appointments = await env.DB.prepare("SELECT a.id, a.customer_name AS customerName, a.phone, a.requested_at AS requestedAt, a.status, a.outcome, s.name AS serviceName, s.duration_minutes AS durationMinutes, s.price FROM appointments a JOIN services s ON s.id = a.service_id WHERE a.customer_id = ? ORDER BY a.requested_at DESC LIMIT 100").bind(customerMatch[1]).all();
           return json({ customer, appointments: appointments.results });
