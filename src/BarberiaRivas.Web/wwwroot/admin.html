@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#11100f">\n  <link rel="icon" type="image/jpeg" href="/images/logo.jpg">\n  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#11100f">
+  <link rel="icon" type="image/jpeg" href="/images/logo.jpg">
+  <meta name="robots" content="noindex, nofollow">
   <title>Administración | Barbería Rivas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +47,7 @@
 
     <main class="main-content">
       <header class="topbar">
-        <button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="admin-sidebar">Menú</button>
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="admin-sidebar" aria-label="Abrir menú">☰</button>
         <div><p class="eyebrow">BARBERÍA RIVAS · PUENTE GENIL</p><h1>Agenda</h1></div>
         <button class="primary-button new-appointment-button" id="new-appointment">+ Nueva cita</button>
       </header>
@@ -107,7 +109,8 @@
         </div>
         <div class="service-admin-list" id="service-admin-list"><p class="empty-state">Cargando servicios…</p></div>
       </section>
-      <footer class="admin-footer">Barbería Rivas · Gestión interna de citas</footer>
+      <div class="admin-toast" id="admin-toast" role="status" aria-live="polite"></div>
+  <footer class="admin-footer">Barbería Rivas · Gestión interna de citas</footer>
     </main>
   </div>
 
