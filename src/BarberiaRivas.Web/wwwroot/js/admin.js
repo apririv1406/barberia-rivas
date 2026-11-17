@@ -667,7 +667,7 @@ function renderDay() {
 function createAppointmentCard(item, compact) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "appointment-card appointment-card-clickable " + (item.status === "Pendiente" ? "is-pending" : "is-confirmed");
+    card.className = "appointment-card appointment-card-clickable " + (item.status === "Pendiente" ? "is-pending" : "is-confirmed") + (item.outcome === "Completada" ? " is-completed" : "") + (item.outcome === "No presentado" ? " is-no-show" : "");
     card.setAttribute("aria-label", "Abrir cita de " + item.customerName);
     const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(new Date(item.requestedAt));
     const outcome = item.outcome && item.outcome !== "Pendiente" ? item.outcome : item.status;
