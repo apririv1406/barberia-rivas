@@ -632,7 +632,7 @@ function createAppointmentCard(item, compact) {
         actions.push('<button class="action-button reject" data-whatsapp="Rechazada" title="Abrir WhatsApp para rechazar" aria-label="Rechazar solicitud por WhatsApp">Rechazar</button>');
         actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
     } else if (item.status === "Confirmada") {
-        actions.push('<button class="action-button" data-whatsapp="Cambiar">Cambiar por WhatsApp</button>');
+        actions.push('<button class="action-button" data-whatsapp="Cambiar" title="Abrir WhatsApp para proponer un cambio" aria-label="Cambiar cita por WhatsApp">Cambiar</button>');
         actions.push('<button class="action-button reject" data-whatsapp="Cancelada" title="Abrir WhatsApp para cancelar" aria-label="Cancelar cita por WhatsApp">Cancelar</button>');
     }
     card.innerHTML =
