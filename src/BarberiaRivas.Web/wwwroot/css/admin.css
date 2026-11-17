@@ -497,3 +497,102 @@
   .business-hours-period { padding: 7px; gap: 6px; }
   .business-hours-period input { padding: 6px 4px; }
 }
+
+
+/* Corrección estricta de ancho en móvil: evita que los controles nativos
+   (especialmente input[type=time] y type=date) impongan su ancho mínimo. */
+@media screen and (max-width: 900px) {
+  html, body.admin-body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .admin-app,
+  .main-content,
+  #availability-view,
+  .availability-layout,
+  .availability-card,
+  .business-hours-editor,
+  .business-hours-day,
+  .business-hours-periods,
+  .block-form,
+  .block-form .form-row {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+  }
+
+  .availability-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .availability-card,
+  .availability-card * {
+    box-sizing: border-box;
+  }
+
+  .business-hours-period {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0 !important;
+    overflow: hidden;
+  }
+
+  .business-hours-period .hours-start,
+  .business-hours-period .hours-end,
+  .block-form input,
+  .block-form select,
+  .block-form textarea,
+  .dialog-form input:not([type="checkbox"]),
+  .dialog-form select,
+  .dialog-form textarea {
+    display: block;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0;
+  }
+
+  .block-form .form-row,
+  .dialog-form .form-row,
+  .service-dialog .form-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .block-form label,
+  .dialog-form label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0 !important;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .business-hours-period {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px;
+  }
+
+  .business-hours-period > span:first-child {
+    grid-column: 1 !important;
+  }
+
+  .business-hours-period .hours-start,
+  .business-hours-period .hours-end {
+    grid-column: 1 !important;
+  }
+
+  .availability-card {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+}
