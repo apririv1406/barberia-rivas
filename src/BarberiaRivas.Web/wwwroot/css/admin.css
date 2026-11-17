@@ -15,3 +15,25 @@
 
 .services-intro{font-size:11px;color:var(--muted);line-height:1.6;margin:8px 0 0}.services-heading{align-items:center}.service-admin-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.service-admin-card{border:1px solid var(--line);padding:18px;background:#fff;display:grid;gap:14px}.service-admin-card.is-inactive{opacity:.65;background:#fafaf8}.service-admin-main{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.service-admin-main strong{font-size:14px}.service-admin-main p{font-size:11px;color:var(--muted);line-height:1.5;margin:6px 0 0}.service-state{font-size:9px;padding:5px 8px;white-space:nowrap}.service-state.active{background:#e8f1eb;color:#397b57}.service-state.inactive{background:#eee;color:#777}.service-admin-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}.service-admin-actions{display:flex;gap:8px}.service-admin-actions .secondary-button{padding:8px 12px}.service-dialog{border:0;padding:0;width:min(100% - 28px,540px);max-height:90vh;overflow:auto;box-shadow:0 25px 90px #0003}.service-dialog::backdrop{background:#17171580}
 @media(max-width:800px){.service-admin-list{grid-template-columns:1fr}.services-heading{align-items:flex-start;flex-direction:column}.services-heading .primary-button{width:100%}}
+
+.calendar-toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.calendar-view-toggle{display:flex;border:1px solid var(--line);padding:3px;background:#f7f7f4;gap:2px}
+.calendar-view-toggle button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-size:10px;font-weight:700}
+.calendar-view-toggle button.active{background:#171715;color:#fff}
+.week-calendar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;align-items:start}
+.week-day{min-width:0;border:1px solid var(--line);background:#fafaf8;min-height:260px}
+.week-day.is-today{border-color:#a68b5b}
+.week-day-heading{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:12px 10px;border-bottom:1px solid var(--line);background:#fff}
+.week-day-heading>div{display:grid;gap:4px}
+.week-day-heading strong{font-size:11px}
+.week-day-heading span{font-size:10px;color:var(--muted);text-transform:capitalize}
+.week-day-heading small{font-size:9px;color:var(--muted);white-space:nowrap}
+.week-day-appointments{display:grid;gap:8px;padding:8px}
+.week-day .appointment-card{grid-template-columns:42px minmax(0,1fr);gap:7px;padding:9px 7px}
+.week-day .appointment-info strong{font-size:10px}
+.week-day .appointment-info>span:not(.status-pill),.week-day .appointment-info small{font-size:9px}
+.week-day .appointment-actions{grid-column:1/-1}
+.week-day .action-button{font-size:8px;padding:6px}
+.week-empty{margin:0;padding:18px 5px;text-align:center;color:#aaa;font-size:10px}
+@media(max-width:1100px){.week-calendar{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.calendar-toolbar{justify-content:space-between;width:100%;gap:8px}.calendar-view-toggle button{padding:8px 10px}.week-calendar{grid-template-columns:1fr}.week-day{min-height:0}.week-day-appointments{grid-template-columns:1fr}.week-day .appointment-card{grid-template-columns:58px minmax(0,1fr)}}
