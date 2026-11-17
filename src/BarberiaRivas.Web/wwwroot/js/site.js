@@ -205,6 +205,7 @@ bookingForm.addEventListener("submit", async function (event) {
 
         bookingFeedback.textContent = "¡Solicitud enviada! La barbería revisará tu petición y te confirmará la cita. Si lo prefieres, también puedes escribirnos por WhatsApp.";
         bookingFeedback.classList.add("success");
+        showBookingPopup("¡Solicitud enviada! La barbería revisará tu petición y te confirmará la cita.");
         bookingForm.reset();
     } catch (error) {
         bookingFeedback.textContent = error.message;
