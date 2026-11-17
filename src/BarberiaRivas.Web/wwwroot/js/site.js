@@ -150,7 +150,7 @@ function renderServiceCard(service, index) {
     const price = document.createElement("strong");
     price.className = "service-price";
     price.textContent = service.price === null
-        ? "Consultar"
+        ? "CONSULTAR"
         : new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(service.price);
     priceWrap.append(priceLabel, price);
 
@@ -179,6 +179,89 @@ function renderServiceCard(service, index) {
     bottom.append(priceRow, choose);
     card.append(top, title, description, bottom);
     return card;
+}
+
+
+async function loadInstagramFeed() {
+    const grid = document.querySelector("#instagram-grid");
+    const footnote = document.querySelector("#instagram-footnote");
+    if (!grid) return;
+
+    try {
+        const response = await fetch("/api/instagram-feed");
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "No se han podido cargar las publicaciones.");
+
+        const posts = Array.isArray(result.posts) ? result.posts : [];
+        if (!result.configured || !posts.length) {
+            grid.replaceChildren();
+            const empty = document.createElement("div");
+            empty.className = "instagram-empty";
+            empty.append(document.createTextNode(result.configured
+                ? "Todavía no hay publicaciones disponibles. Mientras tanto, descubre todos nuestros trabajos en Instagram."
+                : "Estamos preparando la conexión con Instagram. Mientras tanto, puedes descubrir nuestros trabajos en el perfil."));
+            const link = document.createElement("a");
+            link.href = "https://www.instagram.com/barberia_rivas/";
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "VER INSTAGRAM ↗";
+            empty.append(document.createElement("br"), link);
+            grid.append(empty);
+            if (footnote) footnote.textContent = "Síguenos en Instagram para descubrir los últimos cortes y novedades.";
+            return;
+        }
+
+        grid.replaceChildren();
+        posts.slice(0, 6).forEach(function (post) {
+            if (!post || !post.permalink) return;
+            const mediaUrl = post.mediaType === "VIDEO" ? (post.thumbnailUrl || post.mediaUrl) : (post.mediaUrl || post.thumbnailUrl);
+            if (!mediaUrl) return;
+
+            const link = document.createElement("a");
+            link.className = "instagram-card";
+            link.href = post.permalink;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.setAttribute("aria-label", "Ver publicación de Barbería Rivas en Instagram");
+
+            const image = document.createElement("img");
+            image.src = mediaUrl;
+            image.alt = post.caption ? post.caption.slice(0, 140) : "Trabajo de Barbería Rivas";
+            image.loading = "lazy";
+            image.decoding = "async";
+
+            const label = document.createElement("span");
+            label.className = "instagram-card-label";
+            const type = document.createElement("span");
+            type.textContent = post.mediaType === "VIDEO" ? "REEL / VÍDEO" : "BARBERÍA RIVAS";
+            const arrow = document.createElement("span");
+            arrow.textContent = "VER PUBLICACIÓN ↗";
+            label.append(type, arrow);
+            link.append(image, label);
+            grid.append(link);
+        });
+
+        if (!grid.children.length) {
+            const empty = document.createElement("div");
+            empty.className = "instagram-empty";
+            empty.textContent = "Puedes ver nuestras últimas publicaciones directamente en Instagram.";
+            grid.append(empty);
+        }
+        if (footnote) footnote.textContent = "Las publicaciones más recientes de @barberia_rivas · Actualización automática.";
+    } catch (error) {
+        grid.replaceChildren();
+        const fallback = document.createElement("div");
+        fallback.className = "instagram-empty";
+        fallback.textContent = "No hemos podido cargar Instagram en este momento. Puedes ver las publicaciones en nuestro perfil.";
+        const link = document.createElement("a");
+        link.href = "https://www.instagram.com/barberia_rivas/";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "ABRIR INSTAGRAM ↗";
+        fallback.append(document.createElement("br"), link);
+        grid.append(fallback);
+        if (footnote) footnote.textContent = "Instagram · @barberia_rivas";
+    }
 }
 
 let availabilityRequest = 0;
@@ -344,3 +427,4 @@ if (bookingForm) {
 
 loadServices();
 loadPublicHours();
+loadInstagramFeed();
