@@ -29,12 +29,13 @@
   </section>
 
   <div class="admin-app" id="admin-app" hidden>
-    <aside class="sidebar">
-      <a class="sidebar-brand" href="/"><img src="/images/logo.jpg" alt="Barbería Rivas"><span>BARBERÍA <b>RIVAS</b><small>ADMINISTRACIÓN</small></span></a>
+    <aside class="sidebar" id="admin-sidebar">
+      <a class="sidebar-brand" href="/"><img src="/images/logo.jpg" alt="Barbería Rivas" width="58" height="58"><span>BARBERÍA <b>RIVAS</b><small>ADMINISTRACIÓN</small></span></a>
+      <button class="sidebar-close" id="sidebar-close" type="button">Cerrar menú</button>
       <nav class="side-nav">
-        <a class="active" href="#agenda" data-view="agenda"><span>▦</span> Agenda</a>
-        <a href="#pendientes" data-view="pending"><span>◷</span> Solicitudes pendientes <i id="pending-nav-count">0</i></a>
-        <a href="#servicios-admin" data-view="services"><span>✂</span> Servicios</a>
+        <a class="active" href="#agenda" data-view="agenda">Agenda</a>
+        <a href="#pendientes" data-view="pending">Solicitudes pendientes <i id="pending-nav-count">0</i></a>
+        <a href="#servicios-admin" data-view="services">Servicios</a>
       </nav>
       <div class="sidebar-bottom">
         <a href="/" target="_blank" rel="noopener">Ver página web ↗</a>
@@ -44,6 +45,7 @@
 
     <main class="main-content">
       <header class="topbar">
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="admin-sidebar">Menú</button>
         <div><p class="eyebrow">BARBERÍA RIVAS · PUENTE GENIL</p><h1>Agenda</h1></div>
         <button class="primary-button new-appointment-button" id="new-appointment">+ Nueva cita</button>
       </header>
