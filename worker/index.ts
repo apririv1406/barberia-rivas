@@ -237,9 +237,10 @@ async function createAppointment(env: Env, body: Record<string, unknown>, manual
   const phone = clean(body.phone, 30);
   const email = body.email == null || body.email === "" ? null : clean(body.email, 150);
   const notes = body.notes == null || body.notes === "" ? null : clean(body.notes, 500);
+  const internalNotes = body.internalNotes == null || body.internalNotes === "" ? null : clean(body.internalNotes, 1000);
   const serviceId = typeof body.serviceId === "string" ? body.serviceId : "";
   const requestedAt = body.requestedAt;
-  if (!name || !phone || (body.notes && !notes))
+  if (!name || !phone || (body.notes && !notes) || (body.internalNotes && !internalNotes))
     return problem("Datos no válidos", 400, "Revisa el nombre, teléfono y observaciones.");
   if (!/^[0-9a-f-]{36}$/i.test(serviceId)) return problem("Servicio no válido", 400, "Selecciona uno de nuestros servicios.");
   if (!validDateTime(requestedAt)) return problem("Fecha u hora no válida", 400, "Selecciona una fecha y hora válidas.");
@@ -262,8 +263,8 @@ async function createAppointment(env: Env, body: Record<string, unknown>, manual
     .bind(customerId, name, phone, email, now, now).run();
   const customer = await env.DB.prepare("SELECT id FROM customers WHERE phone = ?").bind(phone).first<{ id: string }>();
   try {
-    await env.DB.prepare("INSERT INTO appointments (id, service_id, customer_id, customer_name, phone, email, notes, requested_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, serviceId, customer?.id || customerId, name, phone, email, notes, requestedAt.length === 16 ? requestedAt + ":00" : requestedAt, status, now).run();
+    await env.DB.prepare("INSERT INTO appointments (id, service_id, customer_id, customer_name, phone, email, notes, internal_notes, requested_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, serviceId, customer?.id || customerId, name, phone, email, notes, internalNotes, requestedAt.length === 16 ? requestedAt + ":00" : requestedAt, status, now).run();
     await env.DB.prepare("INSERT INTO appointment_history (id, appointment_id, action, detail, created_at) VALUES (?, ?, 'Creada', ?, ?)")
       .bind(crypto.randomUUID(), id, manual ? "Cita creada desde administración" : "Solicitud recibida desde la web", now).run();
   } catch (error) {
